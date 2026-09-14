@@ -1,0 +1,305 @@
+WEBVTT
+
+00:00:00.450 --> 00:00:05.610
+Attention Is All You Need — the paper that introduced the
+Transformer.
+
+00:00:06.060 --> 00:00:14.076
+From Google Brain, Google Research and the University of
+Toronto, published at NeurIPS 2017.
+
+00:00:15.426 --> 00:00:26.274
+In 2017 the best sequence models were recurrent. To compute
+the hidden state at position t, you first need the state at t
+
+00:00:26.724 --> 00:00:36.084
+That dependency chain is the problem. Within a training
+example, nothing can be parallelised — you march through the
+
+00:00:36.534 --> 00:00:45.462
+And information from the first token has to survive n hops to
+reach the last one, which is why long-range dependencies were
+
+00:00:45.912 --> 00:00:56.424
+Self-attention breaks both at once. Every position is computed
+simultaneously, and any position can reach any other in a
+
+00:00:56.874 --> 00:01:05.970
+The paper's claim in the title is literal: remove recurrence
+and convolution entirely, and attention alone is enough.
+
+00:01:07.320 --> 00:01:10.824
+Here is the operation, not the box.
+
+00:01:11.274 --> 00:01:21.162
+Every position emits three vectors: a query for what it is
+looking for, a key for what it offers, and a value for what it
+
+00:01:21.612 --> 00:01:30.228
+Take the query from the word 'it'. Dot it against every key in
+the sentence. That gives a similarity score per position.
+
+00:01:30.678 --> 00:01:39.246
+Softmax turns those scores into weights that sum to one. The
+output for 'it' is the weighted sum of all the values.
+
+00:01:39.696 --> 00:01:46.320
+The word 'animal' scores highest, so most of the output comes
+from it — which is how 'it' gets resolved.
+
+00:01:46.770 --> 00:01:56.682
+The crucial part: these weights are computed, not learned. The
+same weights matrix does not exist. It is recomputed for every
+
+00:01:58.032 --> 00:02:00.984
+Written as a computation, it is short.
+
+00:02:01.434 --> 00:02:15.090
+Multiply queries by keys transposed to get all the scores at
+once. Divide by the square root of the key dimension.
+
+00:02:15.540 --> 00:02:26.532
+That is the entire attention function, and every operation in
+it is a matrix multiply or an elementwise map — which is
+
+00:02:26.982 --> 00:02:33.534
+Doing it for all queries at once is what buys the parallelism
+the previous slide promised.
+
+00:02:34.884 --> 00:02:39.132
+The scaling factor looks like an arbitrary detail and is not.
+
+00:02:39.582 --> 00:02:50.358
+If the query and key components are independent with unit
+variance, their dot product has variance d-k. With d-k of 64,
+
+00:02:50.808 --> 00:03:02.592
+Large logits push softmax into its saturated region — one
+weight goes to nearly one, the rest to nearly zero, and the
+
+00:03:03.042 --> 00:03:12.570
+Dividing by the square root of d-k puts the variance back at
+one, which keeps the distribution informative and the
+
+00:03:13.020 --> 00:03:21.684
+The paper notes this is why the dot-product form works at all
+at scale; without it, additive attention outperforms it.
+
+00:03:23.034 --> 00:03:28.962
+A single attention is a single weighted average, and averaging
+destroys information.
+
+00:03:29.412 --> 00:03:39.204
+If one head has to encode subject agreement and coreference
+and positional adjacency all at once, it has to compromise
+
+00:03:39.654 --> 00:03:49.182
+Multi-head attention runs h attentions in parallel, each on
+its own learned projection of the queries, keys and values.
+
+00:03:49.632 --> 00:03:57.840
+One head can track what 'it' refers to while another tracks
+the verb it attaches to and a third tracks adjacent words.
+
+00:03:58.290 --> 00:04:09.474
+The paper's appendix shows exactly this: individual heads
+learn behaviours that look like syntactic and semantic
+
+00:04:10.824 --> 00:04:13.944
+The implementation keeps the cost flat.
+
+00:04:14.394 --> 00:04:22.866
+With a model dimension of 512 and eight heads, each head works
+in 64 dimensions rather than 512.
+
+00:04:23.316 --> 00:04:30.948
+So the eight heads together cost about the same as one full-
+width attention. You get the diversity for free.
+
+00:04:31.398 --> 00:04:40.566
+The outputs are concatenated and passed through one more
+learned projection, W-O, which lets the model mix what the
+
+00:04:41.916 --> 00:04:54.204
+Attention has a problem recurrence did not: it is permutation
+invariant. Shuffle the input and the outputs shuffle with it.
+
+00:04:54.654 --> 00:05:06.966
+So position is injected directly into the embeddings, using
+sinusoids whose wavelengths form a geometric progression from
+
+00:05:07.416 --> 00:05:20.208
+The reason for sinusoids rather than learned vectors is the
+offset property: for any fixed shift k, the encoding at
+
+00:05:20.658 --> 00:05:25.266
+That gives the model an easy way to attend by relative
+position.
+
+00:05:25.716 --> 00:05:36.276
+They tried learned positional embeddings too and got nearly
+identical results — but sinusoids extrapolate to sequence
+
+00:05:37.626 --> 00:05:40.698
+The architecture assembles from those pieces.
+
+00:05:41.148 --> 00:05:50.508
+The encoder is six identical layers. Each has multi-head self-
+attention followed by a position-wise feed-forward network.
+
+00:05:50.958 --> 00:05:59.838
+Every sublayer is wrapped in a residual connection and layer
+normalisation — the output is LayerNorm of x plus Sublayer of
+
+00:06:00.288 --> 00:06:10.656
+That is why every sublayer, and the embeddings, all use
+dimension 512: the residual additions require matching shapes
+
+00:06:11.106 --> 00:06:22.482
+The feed-forward network is applied to each position
+separately and identically — two linear layers with a ReLU
+
+00:06:23.832 --> 00:06:28.152
+The decoder is the same six-layer pattern with one addition.
+
+00:06:28.602 --> 00:06:35.706
+Between its self-attention and its feed-forward network sits a
+third sublayer: encoder-decoder attention.
+
+00:06:36.156 --> 00:06:45.996
+There, the queries come from the decoder while the keys and
+values come from the encoder output. That is how the target
+
+00:06:46.446 --> 00:06:53.286
+Its own self-attention is masked, and the output embeddings
+are shifted right by one position.
+
+00:06:53.736 --> 00:07:00.936
+Together those two ensure that the prediction for position i
+can only depend on positions before i.
+
+00:07:02.286 --> 00:07:06.438
+The masking is done inside attention rather than around it.
+
+00:07:06.888 --> 00:07:17.544
+Before the softmax, every score connecting a query to a later
+key is set to negative infinity. After the softmax those
+
+00:07:17.994 --> 00:07:23.418
+So position i attends to positions one through i and nothing
+beyond.
+
+00:07:23.868 --> 00:07:33.324
+Without it the model could simply read the answer, and the
+whole autoregressive property collapses at inference time when
+
+00:07:34.674 --> 00:07:37.578
+Now the argument the paper actually rests on.
+
+00:07:38.028 --> 00:07:46.044
+In a recurrent network, information from the first position
+reaches the last after n sequential steps.
+
+00:07:46.494 --> 00:07:57.654
+A convolutional stack shortens that to logarithmic in n with
+dilations, or linear with a fixed kernel width — you need a
+
+00:07:58.104 --> 00:08:06.480
+Self-attention connects every position to every other in one
+step. The maximum path length is constant.
+
+00:08:06.930 --> 00:08:17.346
+Shorter paths make long-range dependencies easier to learn,
+because the gradient has fewer steps to traverse. That is the
+
+00:08:18.696 --> 00:08:24.336
+The cost table is worth reading carefully because it is where
+the honest trade-off lives.
+
+00:08:24.786 --> 00:08:36.306
+Self-attention is quadratic in sequence length and linear in
+dimension. Recurrence is the other way round — linear in
+
+00:08:36.756 --> 00:08:46.956
+So self-attention is cheaper per layer whenever the sequence
+is shorter than the dimension, which was true of the sentence
+
+00:08:47.406 --> 00:08:54.678
+On sequential operations and path length it wins outright:
+constant against linear on both.
+
+00:08:55.128 --> 00:09:09.240
+For very long sequences they suggest restricting attention to
+a neighbourhood of size r, which trades path length back up to
+
+00:09:10.590 --> 00:09:16.638
+The training setup is worth knowing because two pieces of it
+became standard practice.
+
+00:09:17.088 --> 00:09:30.096
+The learning rate warms up linearly for four thousand steps
+and then decays with the inverse square root of the step
+
+00:09:30.546 --> 00:09:40.962
+Label smoothing of zero point one hurts perplexity — the model
+is deliberately made less confident — but improves BLEU and
+
+00:09:41.412 --> 00:09:49.092
+And the scale is modest by today's standards: eight P100 GPUs,
+twelve hours for the base model.
+
+00:09:50.442 --> 00:10:00.906
+On English to German, the big Transformer reaches 28.4 BLEU,
+more than two points above the previous best, including
+
+00:10:01.356 --> 00:10:08.700
+On English to French it reaches 41.8, beating every previously
+published single model.
+
+00:10:09.150 --> 00:10:13.494
+The training cost column is the part that mattered most at the
+time.
+
+00:10:13.944 --> 00:10:23.568
+The base model reaches state-of-the-art-competitive quality at
+roughly a fiftieth of the FLOPs of the models it beats, and
+
+00:10:24.918 --> 00:10:36.990
+To show the architecture was not translation-specific, they
+applied it to English constituency parsing — a task with
+
+00:10:37.440 --> 00:10:46.200
+With only forty thousand training sentences and almost no
+tuning, it beats every previously reported model except one.
+
+00:10:46.650 --> 00:10:56.082
+Semi-supervised, it reaches 92.7 F1, outperforming the
+recurrent grammar networks that were state of the art.
+
+00:10:56.532 --> 00:11:04.812
+That generality is the reason this architecture went
+everywhere afterwards, rather than staying a translation
+
+00:11:06.162 --> 00:11:16.818
+To summarise: the contribution is a subtraction. Remove
+recurrence and convolution, keep only attention, and the model
+
+00:11:17.268 --> 00:11:28.980
+Attention is a soft lookup whose weights are computed from the
+input rather than stored, and multiple heads let it perform
+
+00:11:29.430 --> 00:11:31.902
+Three caveats worth carrying.
+
+00:11:32.352 --> 00:11:46.752
+The quadratic cost in sequence length is fine when the
+sequence is shorter than the model dimension, and becomes the
+
+00:11:47.202 --> 00:11:56.466
+Position is added rather than intrinsic, and sinusoids versus
+learned embeddings made no measurable difference here.
+
+00:11:56.916 --> 00:12:13.188
+And the evaluation is two translation pairs and one parsing
+task at 2017 scale. The claim being tested was that attention
+

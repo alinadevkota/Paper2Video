@@ -1,0 +1,172 @@
+{
+ "videos": {
+  "diffusion": {
+   "duration": 1286,
+   "cues": 146
+  },
+  "dreamer4": {
+   "duration": 1050,
+   "cues": 101
+  },
+  "good": {
+   "duration": 809,
+   "cues": 75
+  },
+  "intuitive_physics": {
+   "duration": 765,
+   "cues": 78
+  },
+  "lacot": {
+   "duration": 851,
+   "cues": 83
+  },
+  "lejepa": {
+   "duration": 939,
+   "cues": 88
+  },
+  "modality_gap": {
+   "duration": 855,
+   "cues": 89
+  },
+  "transformer": {
+   "duration": 734,
+   "cues": 78
+  },
+  "vlm_scaling": {
+   "duration": 627,
+   "cues": 71
+  }
+ },
+ "wall": [
+  {
+   "src": "figures/diffusion-03-12.jpg",
+   "video": "diffusion",
+   "t": 193
+  },
+  {
+   "src": "figures/dreamer4-00-52.jpg",
+   "video": "dreamer4",
+   "t": 52
+  },
+  {
+   "src": "figures/dreamer4-02-37.jpg",
+   "video": "dreamer4",
+   "t": 157
+  },
+  {
+   "src": "figures/dreamer4-04-22.jpg",
+   "video": "dreamer4",
+   "t": 262
+  },
+  {
+   "src": "figures/good-06-03.jpg",
+   "video": "good",
+   "t": 364
+  },
+  {
+   "src": "figures/good-07-24.jpg",
+   "video": "good",
+   "t": 445
+  },
+  {
+   "src": "figures/intuitive_physics-00-38.jpg",
+   "video": "intuitive_physics",
+   "t": 38
+  },
+  {
+   "src": "figures/intuitive_physics-01-54.jpg",
+   "video": "intuitive_physics",
+   "t": 115
+  },
+  {
+   "src": "figures/intuitive_physics-05-44.jpg",
+   "video": "intuitive_physics",
+   "t": 344
+  },
+  {
+   "src": "figures/intuitive_physics-07-00.jpg",
+   "video": "intuitive_physics",
+   "t": 420
+  },
+  {
+   "src": "figures/intuitive_physics-08-16.jpg",
+   "video": "intuitive_physics",
+   "t": 497
+  },
+  {
+   "src": "figures/lacot-07-48.jpg",
+   "video": "lacot",
+   "t": 468
+  },
+  {
+   "src": "figures/lejepa-02-20.jpg",
+   "video": "lejepa",
+   "t": 141
+  },
+  {
+   "src": "figures/lejepa-03-54.jpg",
+   "video": "lejepa",
+   "t": 235
+  },
+  {
+   "src": "figures/lejepa-08-36.jpg",
+   "video": "lejepa",
+   "t": 516
+  },
+  {
+   "src": "figures/lejepa-14-23.jpg",
+   "video": "lejepa",
+   "t": 864
+  },
+  {
+   "src": "figures/modality_gap-03-33.jpg",
+   "video": "modality_gap",
+   "t": 214
+  },
+  {
+   "src": "figures/modality_gap-09-15.jpg",
+   "video": "modality_gap",
+   "t": 555
+  },
+  {
+   "src": "figures/transformer-00-36.jpg",
+   "video": "transformer",
+   "t": 37
+  },
+  {
+   "src": "figures/transformer-01-50.jpg",
+   "video": "transformer",
+   "t": 110
+  },
+  {
+   "src": "figures/transformer-03-03.jpg",
+   "video": "transformer",
+   "t": 184
+  },
+  {
+   "src": "figures/transformer-05-30.jpg",
+   "video": "transformer",
+   "t": 330
+  },
+  {
+   "src": "figures/transformer-06-43.jpg",
+   "video": "transformer",
+   "t": 404
+  },
+  {
+   "src": "figures/transformer-07-57.jpg",
+   "video": "transformer",
+   "t": 477
+  },
+  {
+   "src": "figures/vlm_scaling-03-39.jpg",
+   "video": "vlm_scaling",
+   "t": 219
+  },
+  {
+   "src": "figures/vlm_scaling-06-47.jpg",
+   "video": "vlm_scaling",
+   "t": 407
+  }
+ ]
+}

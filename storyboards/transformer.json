@@ -1,0 +1,255 @@
+{
+    "title": "Attention Is All You Need",
+    "theme": "paper",
+    "scenes": [
+      {
+        "type": "title",
+        "title": "Attention Is All You Need",
+        "subtitle": "Vaswani, Shazeer, Parmar, Uszkoreit, Jones, Gomez, Kaiser & Polosukhin",
+        "footer": "Google Brain · Google Research · University of Toronto  ·  NeurIPS 2017",
+        "narration": [
+          "Attention Is All You Need — the paper that introduced the Transformer.",
+          "From Google Brain, Google Research and the University of Toronto, published at NeurIPS 2017."
+        ]
+      },
+  
+      {
+        "type": "illustration",
+        "figure": "attn_rnn_vs_attn",
+        "heading": "The bottleneck was never accuracy",
+        "caption": "Recurrence forces the computation into a chain.",
+        "narration": [
+          "In 2017 the best sequence models were recurrent. To compute the hidden state at position t, you first need the state at t minus one.",
+          "That dependency chain is the problem. Within a training example, nothing can be parallelised — you march through the sequence one step at a time.",
+          "And information from the first token has to survive n hops to reach the last one, which is why long-range dependencies were hard.",
+          "Self-attention breaks both at once. Every position is computed simultaneously, and any position can reach any other in a single step.",
+          "The paper's claim in the title is literal: remove recurrence and convolution entirely, and attention alone is enough."
+        ]
+      },
+  
+      {
+        "type": "illustration",
+        "figure": "attn_lookup",
+        "heading": "What attention actually computes",
+        "caption": "A soft lookup: score every key, normalise, blend the values.",
+        "opts": {"box": [0.85, 2.55, 14.30, 5.05]},
+        "narration": [
+          "Here is the operation, not the box.",
+          "Every position emits three vectors: a query for what it is looking for, a key for what it offers, and a value for what it will contribute.",
+          "Take the query from the word 'it'. Dot it against every key in the sentence. That gives a similarity score per position.",
+          "Softmax turns those scores into weights that sum to one. The output for 'it' is the weighted sum of all the values.",
+          "The word 'animal' scores highest, so most of the output comes from it — which is how 'it' gets resolved.",
+          "The crucial part: these weights are computed, not learned. The same weights matrix does not exist. It is recomputed for every input."
+        ]
+      },
+  
+      {
+        "type": "illustration",
+        "figure": "scaled_dot_product",
+        "heading": "The same thing as an operator graph",
+        "caption": "Two matrix multiplies with a scale, an optional mask, and a softmax between.",
+        "narration": [
+          "Written as a computation, it is short.",
+          "Multiply queries by keys transposed to get all the scores at once. Divide by the square root of the key dimension. Optionally apply a mask. Softmax. Multiply by the values.",
+          "That is the entire attention function, and every operation in it is a matrix multiply or an elementwise map — which is exactly what accelerators are good at.",
+          "Doing it for all queries at once is what buys the parallelism the previous slide promised."
+        ]
+      },
+  
+      {
+        "type": "illustration",
+        "figure": "attn_scaling",
+        "heading": "Why divide by the square root of d_k",
+        "caption": "The same logits, softmaxed at two scales.",
+        "narration": [
+          "The scaling factor looks like an arbitrary detail and is not.",
+          "If the query and key components are independent with unit variance, their dot product has variance d-k. With d-k of 64, the scores get large.",
+          "Large logits push softmax into its saturated region — one weight goes to nearly one, the rest to nearly zero, and the gradients through it vanish.",
+          "Dividing by the square root of d-k puts the variance back at one, which keeps the distribution informative and the gradients alive.",
+          "The paper notes this is why the dot-product form works at all at scale; without it, additive attention outperforms it."
+        ]
+      },
+  
+      {
+        "type": "illustration",
+        "figure": "attn_heads",
+        "heading": "Why more than one attention",
+        "caption": "The same sentence, four heads, four different things attended to.",
+        "narration": [
+          "A single attention is a single weighted average, and averaging destroys information.",
+          "If one head has to encode subject agreement and coreference and positional adjacency all at once, it has to compromise between them.",
+          "Multi-head attention runs h attentions in parallel, each on its own learned projection of the queries, keys and values.",
+          "One head can track what 'it' refers to while another tracks the verb it attaches to and a third tracks adjacent words.",
+          "The paper's appendix shows exactly this: individual heads learn behaviours that look like syntactic and semantic relations, without ever being told to."
+        ]
+      },
+  
+      {
+        "type": "illustration",
+        "figure": "multi_head",
+        "heading": "And how that is implemented",
+        "caption": "Project down, attend in parallel, concatenate, project back.",
+        "narration": [
+          "The implementation keeps the cost flat.",
+          "With a model dimension of 512 and eight heads, each head works in 64 dimensions rather than 512.",
+          "So the eight heads together cost about the same as one full-width attention. You get the diversity for free.",
+          "The outputs are concatenated and passed through one more learned projection, W-O, which lets the model mix what the heads found."
+        ]
+      },
+  
+      {
+        "type": "illustration",
+        "figure": "positional_encoding",
+        "heading": "Putting order back in",
+        "caption": "Sinusoids at geometrically spaced frequencies, added to the embeddings.",
+        "narration": [
+          "Attention has a problem recurrence did not: it is permutation invariant. Shuffle the input and the outputs shuffle with it. The model has no idea what order the words came in.",
+          "So position is injected directly into the embeddings, using sinusoids whose wavelengths form a geometric progression from about six point three to ten thousand times two pi.",
+          "The reason for sinusoids rather than learned vectors is the offset property: for any fixed shift k, the encoding at position p plus k is a linear function of the encoding at p.",
+          "That gives the model an easy way to attend by relative position.",
+          "They tried learned positional embeddings too and got nearly identical results — but sinusoids extrapolate to sequence lengths never seen in training."
+        ]
+      },
+  
+      {
+        "type": "illustration",
+        "figure": "encoder_stack",
+        "heading": "The encoder",
+        "caption": "Six identical layers, two sublayers each, everything residual.",
+        "opts": {"box": [0.85, 2.55, 14.30, 5.05]},
+        "narration": [
+          "The architecture assembles from those pieces.",
+          "The encoder is six identical layers. Each has multi-head self-attention followed by a position-wise feed-forward network.",
+          "Every sublayer is wrapped in a residual connection and layer normalisation — the output is LayerNorm of x plus Sublayer of x.",
+          "That is why every sublayer, and the embeddings, all use dimension 512: the residual additions require matching shapes throughout.",
+          "The feed-forward network is applied to each position separately and identically — two linear layers with a ReLU between, widening to 2048 and back."
+        ]
+      },
+  
+      {
+        "type": "illustration",
+        "figure": "decoder_stack",
+        "heading": "The decoder",
+        "caption": "Six layers again, but with a third sublayer in the middle.",
+        "opts": {"box": [0.85, 2.55, 14.30, 5.05]},
+        "narration": [
+          "The decoder is the same six-layer pattern with one addition.",
+          "Between its self-attention and its feed-forward network sits a third sublayer: encoder-decoder attention.",
+          "There, the queries come from the decoder while the keys and values come from the encoder output. That is how the target sequence reads from the source.",
+          "Its own self-attention is masked, and the output embeddings are shifted right by one position.",
+          "Together those two ensure that the prediction for position i can only depend on positions before i."
+        ]
+      },
+  
+      {
+        "type": "illustration",
+        "figure": "causal_mask",
+        "heading": "The mask that keeps generation honest",
+        "caption": "Set the illegal scores to minus infinity before the softmax.",
+        "narration": [
+          "The masking is done inside attention rather than around it.",
+          "Before the softmax, every score connecting a query to a later key is set to negative infinity. After the softmax those weights are exactly zero.",
+          "So position i attends to positions one through i and nothing beyond.",
+          "Without it the model could simply read the answer, and the whole autoregressive property collapses at inference time when the future is not available."
+        ]
+      },
+  
+      {
+        "type": "illustration",
+        "figure": "path_length",
+        "heading": "Why this helps long-range dependencies",
+        "caption": "How many steps it takes for information to cross the sequence.",
+        "narration": [
+          "Now the argument the paper actually rests on.",
+          "In a recurrent network, information from the first position reaches the last after n sequential steps.",
+          "A convolutional stack shortens that to logarithmic in n with dilations, or linear with a fixed kernel width — you need a stack of layers to widen the receptive field.",
+          "Self-attention connects every position to every other in one step. The maximum path length is constant.",
+          "Shorter paths make long-range dependencies easier to learn, because the gradient has fewer steps to traverse. That is the mechanism behind the results."
+        ]
+      },
+  
+      {
+        "type": "illustration",
+        "figure": "attn_complexity",
+        "heading": "What it costs",
+        "caption": "Three axes, and self-attention wins two of them outright.",
+        "narration": [
+          "The cost table is worth reading carefully because it is where the honest trade-off lives.",
+          "Self-attention is quadratic in sequence length and linear in dimension. Recurrence is the other way round — linear in length, quadratic in dimension.",
+          "So self-attention is cheaper per layer whenever the sequence is shorter than the dimension, which was true of the sentence lengths in machine translation at the time.",
+          "On sequential operations and path length it wins outright: constant against linear on both.",
+          "For very long sequences they suggest restricting attention to a neighbourhood of size r, which trades path length back up to n over r. That is the seed of every efficient-attention paper that followed."
+        ]
+      },
+  
+      {
+        "type": "bullets",
+        "heading": "How it was trained",
+        "items": [
+          {"head": "Data", "body": "WMT 2014 English-German, 4.5M sentence pairs, byte-pair encoding with a 37k shared vocabulary."},
+          {"head": "Schedule", "body": "Adam with learning rate rising linearly for 4000 warmup steps, then decaying with the inverse square root of the step."},
+          {"head": "Regularisation", "body": "Residual dropout 0.1 on every sublayer and on the embedding sums, plus label smoothing of 0.1."},
+          {"head": "Hardware", "body": "8 P100 GPUs. The base model trained in 12 hours; the big model in 3.5 days."}
+        ],
+        "narration": [
+          "The training setup is worth knowing because two pieces of it became standard practice.",
+          "The learning rate warms up linearly for four thousand steps and then decays with the inverse square root of the step count. Almost every transformer since uses some version of that schedule.",
+          "Label smoothing of zero point one hurts perplexity — the model is deliberately made less confident — but improves BLEU and accuracy.",
+          "And the scale is modest by today's standards: eight P100 GPUs, twelve hours for the base model."
+        ]
+      },
+  
+      {
+        "type": "illustration",
+        "figure": "attn_results",
+        "heading": "Results — machine translation",
+        "caption": "WMT 2014, BLEU and the training cost to get there.",
+        "narration": [
+          "On English to German, the big Transformer reaches 28.4 BLEU, more than two points above the previous best, including ensembles.",
+          "On English to French it reaches 41.8, beating every previously published single model.",
+          "The training cost column is the part that mattered most at the time.",
+          "The base model reaches state-of-the-art-competitive quality at roughly a fiftieth of the FLOPs of the models it beats, and the big model at about a quarter."
+        ]
+      },
+  
+      {
+        "type": "bars",
+        "heading": "And it was not just translation",
+        "subhead": "English constituency parsing, WSJ Section 23 F1",
+        "series": [
+          {"label": "Petrov et al. (2006)", "value": 90.4},
+          {"label": "Zhu et al. (2013)", "value": 90.4},
+          {"label": "Transformer, WSJ only (40k sents)", "value": 91.3},
+          {"label": "Dyer et al. RNNG", "value": 91.7},
+          {"label": "Transformer, semi-supervised", "value": 92.7, "highlight": true}
+        ],
+        "footer": "Trained on 40k sentences with almost no task-specific tuning.",
+        "narration": [
+          "To show the architecture was not translation-specific, they applied it to English constituency parsing — a task with strong structural constraints and outputs longer than the inputs.",
+          "With only forty thousand training sentences and almost no tuning, it beats every previously reported model except one.",
+          "Semi-supervised, it reaches 92.7 F1, outperforming the recurrent grammar networks that were state of the art.",
+          "That generality is the reason this architecture went everywhere afterwards, rather than staying a translation result."
+        ]
+      },
+  
+      {
+        "type": "takeaways",
+        "heading": "What to take away",
+        "items": [
+          {"head": "Remove the chain and you can parallelise.", "body": "Recurrence is what forces O(n) sequential steps; attention makes it O(1)."},
+          {"head": "Attention is a computed weighting, not a learned one.", "body": "Scores are recomputed from the input every time, which is why it adapts to content."},
+          {"head": "Multiple heads buy diversity for free.", "body": "h heads at d/h dimensions cost the same as one full-width attention."}
+        ],
+        "caveat": "Two things the paper is straightforward about and one it could not know. Self-attention is quadratic in sequence length, which is fine when n is smaller than d but becomes the dominant cost for long sequences — the restricted-neighbourhood variant is mentioned but not evaluated. Positional information is bolted on rather than intrinsic, and the choice of sinusoids over learned embeddings made no measurable difference on these tasks. And the evaluation is two translation pairs plus one parsing task at 2017 scale; the claim being tested was 'competitive with recurrence', not the general-purpose backbone this became.",
+        "footer": "NeurIPS 2017  ·  arXiv:1706.03762",
+        "narration": [
+          "To summarise: the contribution is a subtraction. Remove recurrence and convolution, keep only attention, and the model gets both faster and better.",
+          "Attention is a soft lookup whose weights are computed from the input rather than stored, and multiple heads let it perform several such lookups at once for the same cost.",
+          "Three caveats worth carrying.",
+          "The quadratic cost in sequence length is fine when the sequence is shorter than the model dimension, and becomes the dominant problem when it is not. The restricted variant is suggested but not evaluated.",
+          "Position is added rather than intrinsic, and sinusoids versus learned embeddings made no measurable difference here.",
+          "And the evaluation is two translation pairs and one parsing task at 2017 scale. The claim being tested was that attention could match recurrence — not that this would become the backbone of nearly everything."
+        ]
+      }
+    ]
+  }

@@ -1,0 +1,292 @@
+WEBVTT
+
+00:00:00.450 --> 00:00:06.810
+GOOD: training-free guided diffusion sampling for out-of-
+distribution detection.
+
+00:00:07.260 --> 00:00:14.556
+A NeurIPS 2025 paper from Nanjing University, Fudan and
+collaborators.
+
+00:00:15.906 --> 00:00:30.570
+Outlier exposure is one of the more reliable ways to improve
+OOD detection. Show a classifier some auxiliary out-of-
+
+00:00:31.020 --> 00:00:38.604
+The catch has always been supply. Hand-curated outlier
+datasets are expensive and tied to a domain.
+
+00:00:39.054 --> 00:00:51.150
+So recent work generates them with diffusion models. This
+paper's argument is that the standard recipe for doing so is
+
+00:00:52.500 --> 00:01:05.988
+Methods like Dream-OOD work in two stages. First they map in-
+distribution images into the diffusion model's text-
+
+00:01:06.438 --> 00:01:22.686
+The first problem is misalignment. A small nudge in embedding
+space produces a large and unpredictable shift in pixel space,
+
+00:01:23.136 --> 00:01:39.768
+The second is coverage. Perturbing a semantic embedding gives
+you semantic shift and nothing else. Covariate shift and
+
+00:01:40.218 --> 00:01:46.482
+Both problems come from the same choice: editing a text
+embedding rather than the image itself.
+
+00:01:47.832 --> 00:01:51.360
+GOOD deletes the embedding stage entirely.
+
+00:01:51.810 --> 00:02:04.026
+It starts from a diffusion model conditioned on a plain class
+prompt, and steers the denoising trajectory itself using
+
+00:02:04.476 --> 00:02:12.756
+The resulting images go into outlier exposure training, and at
+test time a unified score combines two signals.
+
+00:02:13.206 --> 00:02:22.758
+Nothing is retrained. The classifier is frozen, the diffusion
+model is frozen, and there is no latent space to build first.
+
+00:02:24.108 --> 00:02:33.708
+Diffusion sampling walks a noisy sample inward across a family
+of manifolds, from pure noise toward the data manifold.
+
+00:02:34.158 --> 00:02:40.350
+GOOD adds two corrections at each step, following the
+Training-Free Guidance framework.
+
+00:02:40.800 --> 00:02:52.488
+Variance guidance takes the gradient with respect to the noisy
+sample and carries second-order information. It matters most
+
+00:02:52.938 --> 00:03:03.882
+Mean guidance takes the gradient with respect to the denoised
+estimate and acts in data space. It matters most late, when
+
+00:03:04.332 --> 00:03:12.732
+Both use an increasing schedule, so guidance is weak while
+gradients are noisy and strengthens as the image resolves.
+
+00:03:14.082 --> 00:03:19.650
+The first guidance signal comes from reading the classifier as
+an energy-based model.
+
+00:03:20.100 --> 00:03:30.924
+The free energy is the negative log-sum-exp of the logits. It
+is a negative log-density up to a partition function that does
+
+00:03:31.374 --> 00:03:38.934
+So low energy means the classifier finds the input typical;
+high energy means atypical.
+
+00:03:39.384 --> 00:03:46.680
+That is a differentiable function of the pixels, available
+from any classifier, with no extra training.
+
+00:03:48.030 --> 00:04:00.246
+Because energy is a negative log-density, ascending its
+gradient walks a sample out of the high-density region the
+
+00:04:00.696 --> 00:04:11.280
+This is a pixel-space signal, so it captures the shifts the
+embedding-perturbation methods miss — style, colour, material,
+
+00:04:11.730 --> 00:04:22.458
+The paper's qualitative results show exactly that: images that
+keep the rough class layout but render it with surreal colours
+
+00:04:23.808 --> 00:04:28.344
+The second signal works in the classifier's feature space
+instead.
+
+00:04:28.794 --> 00:04:38.778
+They build a bank of normalised in-distribution feature
+vectors, and for any sample compute the distance to its k-th
+
+00:04:39.228 --> 00:04:47.964
+Small distance means the sample sits inside a dense, well-
+covered region. Large distance means it has rare features.
+
+00:04:48.414 --> 00:05:06.462
+Ascending that gradient pushes toward feature-sparse regions,
+which produces something quite different from the energy
+
+00:05:06.912 --> 00:05:14.976
+Notably, k barely matters — anywhere from 50 to 500 gives
+AUROC around 96.2.
+
+00:05:16.326 --> 00:05:24.966
+Put together, one sampling step is the ordinary DDIM update
+plus the two guidance terms, each scaled by its own step size.
+
+00:05:25.416 --> 00:05:41.136
+One detail bridges a gap: the guidance functions are defined
+on clean images, but the sampler operates on noisy ones. So
+
+00:05:41.586 --> 00:05:54.522
+The paper also drops recurrence and inner iterations, setting
+both to one, because outlier exposure needs tens of thousands
+
+00:05:55.872 --> 00:05:59.544
+The two step sizes turn out to be the real control knob.
+
+00:05:59.994 --> 00:06:11.826
+Sweeping them over a five-by-five grid, the energy
+distribution of the generated samples shifts steadily away
+
+00:06:12.276 --> 00:06:27.276
+That creates a dilemma. Samples too close to the in-
+distribution data are indistinguishable and regularise
+
+00:06:27.726 --> 00:06:35.934
+Rather than grid-searching for a single best setting, they
+generate across all twenty-five combinations and pool the
+
+00:06:36.384 --> 00:06:47.664
+That is where the twelve and a half thousand image-guided
+samples and ten and a half thousand feature-guided samples
+
+00:06:49.014 --> 00:06:53.742
+The two signals fail the classifier in visibly different ways.
+
+00:06:54.192 --> 00:07:06.912
+Image-level guidance distorts globally: the foreground,
+background and object boundaries all drift toward unnatural
+
+00:07:07.362 --> 00:07:19.266
+Feature-level guidance keeps the image photorealistic and
+instead introduces rare class-specific features — a bird in an
+
+00:07:19.716 --> 00:07:31.956
+Grad-CAM confirms the mechanism: for the hen class, the
+distortions concentrate on the comb, feathers and claws, which
+
+00:07:32.406 --> 00:07:42.006
+So the guidance is not adding generic noise. It is finding the
+parts of the image that carry the classifier's decision and
+
+00:07:43.356 --> 00:07:48.756
+The synthetic outliers then go into ordinary outlier exposure
+training.
+
+00:07:49.206 --> 00:07:59.142
+A small MLP head is trained on the free energy to separate in-
+distribution from synthetic OOD, added to the usual cross-
+
+00:07:59.592 --> 00:08:15.744
+Lambda controls the trade. Higher values improve detection and
+slowly erode in-distribution accuracy; they settle on 2.5,
+
+00:08:17.094 --> 00:08:22.614
+At test time the same two signals are reused, but now the
+question is how to weight them.
+
+00:08:23.064 --> 00:08:35.160
+The paper's answer is adaptive. Compare the k-NN distance
+distribution of the test set against a held-out in-
+
+00:08:35.610 --> 00:08:46.938
+A large divergence means the shift is visible in feature
+space, so trust the feature distance. A small one means it is
+
+00:08:47.388 --> 00:08:59.532
+This matters because the datasets genuinely differ. Textures
+separates cleanly in feature space; iNaturalist, Places and
+
+00:08:59.982 --> 00:09:03.702
+A fixed weight would win on one group and lose on the other.
+
+00:09:05.052 --> 00:09:08.700
+The ablation separates the contributions.
+
+00:09:09.150 --> 00:09:20.646
+The plain classifier sits at 48.68 FPR95. Either guidance
+alone, with balanced sampling, brings it to roughly 32.
+
+00:09:21.096 --> 00:09:28.200
+Using both together reaches 30.82 — a real but modest gain
+over either alone.
+
+00:09:28.650 --> 00:09:36.546
+And then adding the unified score takes it to 17.70. That is
+by far the largest single step.
+
+00:09:36.996 --> 00:09:47.964
+Worth stating plainly: much of the headline improvement comes
+from the test-time scoring function, not from the generated
+
+00:09:49.314 --> 00:09:59.250
+On ImageNet-100, GOOD reaches 17.68 FPR95 and 96.30 AUROC.
+
+00:09:59.700 --> 00:10:11.220
+That is close to half the false positive rate of NCIS, the
+strongest previous synthesis method, and it holds across
+
+00:10:11.670 --> 00:10:19.302
+Textures is the exception — GOOD gets 19.51 there, behind NPOS
+at 8.98.
+
+00:10:19.752 --> 00:10:35.304
+The authors are direct about why: every pixel-level synthesis
+method struggles on Textures, because Stable Diffusion was
+
+00:10:36.654 --> 00:10:40.206
+On CIFAR-100 something counterintuitive happens.
+
+00:10:40.656 --> 00:10:53.712
+Prior methods run a 512-by-512 diffusion model and then
+downsample to CIFAR's 32-by-32, which misaligns pixel and
+
+00:10:54.162 --> 00:11:06.042
+GOOD's fully differentiable path means it can use a 128-by-128
+generator with bilinear downsampling instead, and gradients
+
+00:11:06.492 --> 00:11:23.100
+The smaller model wins — 19.50 FPR95 against 25.66 — while
+costing an order of magnitude less compute. Only on the highly
+
+00:11:24.450 --> 00:11:28.386
+The cost argument is structural rather than incremental.
+
+00:11:28.836 --> 00:11:39.300
+Dream-OOD, NCIS and BOOD all need to build a latent space,
+sample OOD embeddings in it, decode to images, and then train.
+
+00:11:39.750 --> 00:11:56.238
+Dream-OOD reports over sixteen hours on ImageNet-100 — eight
+for the latent space, ten for generation, eight for training.
+
+00:11:56.688 --> 00:12:01.224
+GOOD has two stages: guided generation and training.
+
+00:12:01.674 --> 00:12:17.370
+Per image it is about five point seven times slower than
+unconditional sampling, because of the classifier's forward
+
+00:12:18.720 --> 00:12:30.264
+To summarise: the contribution is to move OOD synthesis from
+embedding perturbation to direct guidance of the sampler,
+
+00:12:30.714 --> 00:12:43.362
+Two complementary signals — free energy for global
+abstraction, k-NN sparsity for realistic hard negatives — and
+
+00:12:43.812 --> 00:12:45.684
+Three caveats, though.
+
+00:12:46.134 --> 00:13:05.334
+Read the ablation before the headline. Both guidances together
+give 30.82 FPR95; the unified test-time score takes it to
+
+00:13:05.784 --> 00:13:18.960
+Textures stays weak, because Stable Diffusion cannot generate
+that distribution — which is the authors' own stated
+
+00:13:19.410 --> 00:13:27.882
+And in-distribution accuracy does slip slightly, from 87.64 to
+87.16.
+

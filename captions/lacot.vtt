@@ -1,0 +1,324 @@
+WEBVTT
+
+00:00:00.450 --> 00:00:04.674
+Latent Chain-of-Thought for Visual Reasoning — LaCoT.
+
+00:00:05.124 --> 00:00:12.732
+From Rochester Institute of Technology, Snap, the University
+of Rochester and the Army Research Laboratory.
+
+00:00:14.082 --> 00:00:25.122
+Getting a vision-language model to reason step by step is
+worth doing: it improves accuracy on hard visual questions and
+
+00:00:25.572 --> 00:00:39.036
+The problem is how you train that behaviour. The three
+standard options — supervised fine-tuning, PPO and GRPO — all
+
+00:00:39.486 --> 00:00:49.326
+And two of them lean on a learned reward model, which
+introduces a second failure mode: the policy can score well
+
+00:00:50.676 --> 00:00:53.964
+Look at what each method actually optimises.
+
+00:00:54.414 --> 00:01:08.646
+Supervised fine-tuning maximises the log-likelihood of one
+reference chain under teacher forcing. The model learns to
+
+00:01:09.096 --> 00:01:24.384
+PPO and GRPO sample from the policy and score with a critic.
+But their KL penalty pins the policy near the SFT baseline, so
+
+00:01:24.834 --> 00:01:31.746
+That combination means they cannot find genuinely novel
+rationales, and the critic can be gamed.
+
+00:01:32.196 --> 00:01:40.932
+LaCoT changes the frame entirely, and the key structural
+difference is in the third row: there is no critic anywhere.
+
+00:01:42.282 --> 00:01:45.498
+The reframing is the paper's central move.
+
+00:01:45.948 --> 00:01:57.468
+Instead of treating the chain of thought as a string to
+imitate, treat it as a latent variable Z, sampled from the
+
+00:01:57.918 --> 00:02:06.942
+A good rationale is one that makes the observed answer likely.
+That is a posterior inference problem, not a next-token
+
+00:02:07.392 --> 00:02:15.960
+The catch is the denominator: normalising requires summing
+over every possible rationale, which is intractable.
+
+00:02:16.410 --> 00:02:26.778
+Markov chain Monte Carlo can approximate it, and so can PPO —
+but the paper argues neither captures the full diversity of
+
+00:02:28.128 --> 00:02:31.224
+Here is why that diversity matters.
+
+00:02:31.674 --> 00:02:48.522
+For a real visual question, there is rarely one correct chain
+of reasoning. There is an algebraic route, a geometric route,
+
+00:02:48.972 --> 00:02:57.180
+A method that collapses onto one mode gets a policy that
+solves problems shaped like the training ones and nothing
+
+00:02:57.630 --> 00:03:10.374
+PPO and GRPO collapse, and the mechanism is specific: the KL
+penalty to the reference policy is exactly what prevents them
+
+00:03:10.824 --> 00:03:20.832
+Amortized variational inference targets the whole posterior —
+sampling each rationale in proportion to its reward, so the
+
+00:03:22.182 --> 00:03:26.406
+The way they implement that is with Generative Flow Networks.
+
+00:03:26.856 --> 00:03:42.144
+Think of generating a rationale as walking a chain of states,
+one token per step. Each state carries a flow, and the
+
+00:03:42.594 --> 00:03:54.810
+That is the sub-trajectory balance condition. If you minimise
+the discrepancy over all pairs of positions, at convergence
+
+00:03:55.260 --> 00:04:10.620
+There is a simplification specific to language models: because
+generation is left to right, every state has exactly one
+
+00:04:11.070 --> 00:04:21.846
+GFlowNets already work well on text reasoning. What blocks
+them on vision-language tasks is the length — visual chains
+
+00:04:23.196 --> 00:04:29.460
+This is the part that removes the reward-hacking problem
+structurally rather than patching it.
+
+00:04:29.910 --> 00:04:38.742
+The reward for a partial rationale is the joint log-likelihood
+of the image, that prefix, and the correct answer, under a
+
+00:04:39.192 --> 00:04:47.664
+So a rationale scores well exactly when it makes the true
+answer probable. There is no learned preference model to fool.
+
+00:04:48.114 --> 00:04:56.826
+You cannot hack a reward that is the model's own likelihood of
+the ground-truth answer — the only way to raise it is to
+
+00:04:58.176 --> 00:05:09.528
+The balance objective needs a reward at every state, and a
+state is a token. On a thousand-token chain that is a thousand
+
+00:05:09.978 --> 00:05:19.242
+Their solution rests on an observation: the log-likelihood is
+locally smooth. Nothing dramatic happens between adjacent
+
+00:05:19.692 --> 00:05:28.620
+So compute the true reward every lambda steps — they use eight
+— and linearly interpolate the intermediate values.
+
+00:05:29.070 --> 00:05:40.710
+Proposition 1 states the condition: if the increments within a
+region are roughly constant, the interpolation error stays
+
+00:05:41.160 --> 00:05:48.528
+That is an eight-fold reduction in forward passes, which is
+what makes mini-batch exploration affordable at all.
+
+00:05:49.878 --> 00:05:54.942
+The second problem is the one every RL practitioner
+recognises.
+
+00:05:55.392 --> 00:06:11.544
+Let the policy explore without constraint and it
+catastrophically forgets — it drifts toward generating fluent,
+
+00:06:11.994 --> 00:06:20.730
+The standard fixes are a KL penalty or a clipped surrogate
+objective. Both work by limiting how far the policy can move.
+
+00:06:21.180 --> 00:06:34.980
+But that is exactly the constraint the paper is trying to
+escape — it is what caused mode collapse two slides ago.
+
+00:06:35.430 --> 00:06:41.982
+So they need something that prevents forgetting without
+restricting where the policy is allowed to go.
+
+00:06:43.332 --> 00:06:48.156
+The answer is to filter rather than clip, and the distinction
+matters.
+
+00:06:48.606 --> 00:07:05.022
+At each step, sample m candidate rationales from the current
+policy, and compare each against a reference rationale — a
+
+00:07:05.472 --> 00:07:16.152
+Candidates that score below delta times the reference's reward
+are discarded before they reach the gradient. Only better-
+
+00:07:16.602 --> 00:07:26.898
+Delta anneals. For the first fifty steps the bar is loose, so
+the model explores freely; after that it tightens, so the
+
+00:07:27.348 --> 00:07:45.540
+The effect is subtle but important. Nothing restricts where
+the policy may sample — only which samples influence the
+
+00:07:45.990 --> 00:07:52.014
+That objective is what they call Reference-Guided GFlowNet
+fine-tuning, RGFN.
+
+00:07:53.364 --> 00:07:59.532
+A smaller change, easy to overlook, that follows from the
+latent-variable framing.
+
+00:07:59.982 --> 00:08:11.070
+A conventionally fine-tuned reasoner puts think tags after the
+Assistant token, which forces a rationale for every
+
+00:08:11.520 --> 00:08:18.336
+LaCoT introduces a new role token, Analyzer, that carries the
+rationale.
+
+00:08:18.786 --> 00:08:31.842
+That makes the rationale a separable component rather than a
+mandatory prefix, so the model can supply reasoning
+
+00:08:33.192 --> 00:08:39.120
+The last component is inference-time scaling, and it reuses
+the same idea.
+
+00:08:39.570 --> 00:08:52.242
+Best-of-N generates several answers and picks one with a
+verifier. That costs a forward pass through a separate reward
+
+00:08:52.692 --> 00:09:07.308
+BiN — Bayesian inference over N rationales — does it without a
+judge. Sample N rationales from the trained sampler, sample an
+
+00:09:07.758 --> 00:09:16.950
+Normalise by sequence length so long chains are not penalised,
+and pick the answer with the highest estimated marginal
+
+00:09:17.400 --> 00:09:32.280
+This is just Equation 8 made practical: the marginal
+likelihood of the answer, with the rationale integrated out by
+
+00:09:33.630 --> 00:09:48.030
+The 7B model reaches 68.4 on MathVista and 48.8 on MathVerse
+vision-only, making it the best open-source model in the
+
+00:09:48.480 --> 00:09:56.592
+The gains over its own base model are 6.6 percent for the 7B
+and 13.9 percent for the 3B.
+
+00:09:57.042 --> 00:10:08.562
+MathVerse vision-only improves most — fourteen points at 3B —
+which suggests the method particularly helps diagram
+
+00:10:09.012 --> 00:10:24.204
+One honest exception the authors report: MathVision drops
+slightly. Those are real Olympiad diagrams, often handwritten
+
+00:10:25.554 --> 00:10:29.154
+This ablation is the most striking number in the paper.
+
+00:10:29.604 --> 00:10:39.564
+Take Qwen2.5-VL-7B and just prompt it to reason step by step:
+63.7 on MathVista.
+
+00:10:40.014 --> 00:10:47.190
+Supervised fine-tuning on reasoning data: 62.7. Slightly
+worse.
+
+00:10:47.640 --> 00:10:53.808
+GRPO fine-tuning: 62.6. Also worse.
+
+00:10:54.258 --> 00:10:57.426
+RGFN: 68.4.
+
+00:10:57.876 --> 00:11:14.076
+Both standard methods land at or below simply prompting the
+base model. The paper attributes GRPO's failure to a reward
+
+00:11:15.426 --> 00:11:22.002
+The claim was diverse and high-likelihood rationales, so they
+measure both directly.
+
+00:11:22.452 --> 00:11:29.340
+Normally these trade off: sampling more diversely means
+sampling lower-probability chains.
+
+00:11:29.790 --> 00:11:40.902
+LaCoT sits up and to the right of the SFT models at matched
+size and temperature — higher maximum log-likelihood and
+
+00:11:41.352 --> 00:11:48.576
+That is what you would expect if the policy really is matching
+the posterior rather than concentrating on one mode.
+
+00:11:49.926 --> 00:11:53.694
+BiN's behaviour matches the estimator's statistics.
+
+00:11:54.144 --> 00:12:05.520
+Accuracy rises consistently with N, because the Monte Carlo
+error of the marginal-likelihood estimate falls as one over
+
+00:12:05.970 --> 00:12:14.634
+It also rises with temperature, because broader posterior
+coverage counteracts the mode-dropping bias of the amortized
+
+00:12:15.084 --> 00:12:22.692
+Greedy decoding is flat, which is the point: without diversity
+there is nothing to integrate over.
+
+00:12:23.142 --> 00:12:34.254
+Going from N equals one to five also reduces hallucination
+noticeably on MMMU — a single sampled rationale can be
+
+00:12:34.704 --> 00:12:44.928
+And BiN is not specific to LaCoT. Applied to plain SFT models
+it improves them too, so it works as a general inference-
+
+00:12:46.278 --> 00:12:53.862
+To summarise: the contribution is a reframing plus three
+pieces of engineering that make it practical.
+
+00:12:54.312 --> 00:13:04.056
+Reasoning becomes posterior inference over a latent rationale,
+so covering multiple valid chains is the objective rather than
+
+00:13:04.506 --> 00:13:12.138
+The reward is the joint likelihood of the correct answer,
+which removes the critic and with it the reward-hacking
+
+00:13:12.588 --> 00:13:26.124
+And exploration is controlled by filtering candidates against
+a reference rather than by clipping the update — which
+
+00:13:26.574 --> 00:13:28.806
+Four caveats worth carrying.
+
+00:13:29.256 --> 00:13:41.496
+Training still needs teacher rationales from a stronger model
+as references. The dependency moves from the reward to the
+
+00:13:41.946 --> 00:13:51.306
+The reward model is an SFT'd vision-language model, so 'no
+critic' means no separate preference model, not no auxiliary
+
+00:13:51.756 --> 00:13:58.908
+The interpolation rests on a local-smoothness assumption that
+is stated but not bounded in general.
+
+00:13:59.358 --> 00:14:10.182
+And the evaluation is two Qwen model sizes with LoRA on three
+thousand examples — with MathVision going down, which the
+

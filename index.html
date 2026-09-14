@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paper2Video — narrated explainer videos from papers and lectures</title>
+<meta name="description" content="Paper2Video turns machine-learning papers and lecture decks into narrated explainer videos and slide decks from a single editable storyboard. Deterministic matplotlib figures, no generative video.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Paper2Video — narrated explainer videos from papers and lectures">
+<meta property="og:description" content="Papers you can watch: ML papers and lectures turned into narrated explainer videos with animated figures, from a single editable storyboard.">
+<meta property="og:url" content="https://alinadevkota.github.io/Paper2Video/">
+<meta property="og:image" content="https://alinadevkota.github.io/Paper2Video/posters/transformer.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%2352adc8'/%3E%3Cpath d='M11 8l14 8-14 8z' fill='%23fff'/%3E%3C/svg%3E">
+<script>
+// Same theme switch as alinadevkota.github.io: remembered per browser, applied before first paint.
+(function(){try{var t=localStorage.getItem("theme");if(t==="dark"||(!t&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.setAttribute("data-theme","dark");}catch(e){}})();
+</script>
+<style>
+/* Tokens follow the "default" theme of academicpages, which the personal site uses. */
+:root{
+  --bg:#fff; --text:#494e52; --text-light:#7a8288; --caption:#777b7e;
+  --border:#f2f3f3; --border-dark:#bdc1c4; --footer-bg:#f2f3f3;
+  --code-bg:#fafafa; --code-text:#31363a; --link:#52adc8; --link-hover:#23606e;
+  --accent:#52adc8; --warm:#f89406; --card:#fff; --paper:#FBFAF7;
+  --brand:#52adc8; --brand-2:#3690ab; --tint:#eef6fa; --tint-edge:#d6e9f1;
+  --shadow:0 1px 1px rgba(0,0,0,.125); --radius:4px;
+  --sans:-apple-system,".SFNSText-Regular","San Francisco",Roboto,"Segoe UI","Helvetica Neue","Lucida Grande",Arial,sans-serif;
+  --serif:Georgia,Times,serif;
+  --mono:Monaco,Consolas,"Lucida Console",monospace;
+  color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --bg:#474747; --text:#fff; --text-light:#f3f3f3; --caption:#bdc1c4;
+  --border:#5c5c5c; --border-dark:#6c6c6c; --footer-bg:#474747;
+  --code-bg:#3d3d3d; --code-text:#e8e8e8; --link:#0ea1c5; --link-hover:#5fd0ec;
+  --accent:#6cc3dc; --card:#3f3f3f; --shadow:0 1px 1px rgba(0,0,0,.4);
+  --brand:#6cc3dc; --brand-2:#9ddcec; --tint:#3f4447; --tint-edge:#555b5e;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{font-size:16px; scroll-behavior:smooth}
+@media (min-width:768px){html{font-size:17px}}
+@media (min-width:1280px){html{font-size:18px}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto} *{animation:none!important;transition:none!important}}
+body{margin:0; background:var(--bg); color:var(--text); font-family:var(--sans); line-height:1.5;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px; margin:0 auto; padding:0 1em}
+.masthead .wrap{max-width:1000px}
+
+h1,h2,h3{font-family:var(--sans); font-weight:700; line-height:1.2; margin:0; color:var(--text)}
+h1{font-size:2.441em; margin-bottom:.15em; letter-spacing:-.01em}
+h2{font-size:1.563em; margin-bottom:.7em; padding-bottom:.4em; border-bottom:1px solid var(--border-dark); position:relative}
+h2::after{content:""; position:absolute; left:0; bottom:-1px; width:3.5em; height:3px; background:var(--brand); border-radius:2px}
+h3{font-size:1em; margin-bottom:.3em}
+p{margin:0 0 1.15em}
+.lede{font-size:1.15em}
+.muted{color:var(--text-light)}
+a{color:var(--link); text-decoration:none}
+a:hover{color:var(--link-hover); text-decoration:underline}
+a:focus-visible,button:focus-visible{outline:2px solid var(--link); outline-offset:3px}
+code,.mono{font-family:var(--mono); font-size:.85em}
+button{font:inherit; color:inherit; background:none; border:0; padding:0; cursor:pointer}
+section{padding:clamp(2.25em,5vw,3.5em) 0; scroll-margin-top:4.5em}
+
+/* masthead, as on the personal site */
+.masthead{position:sticky; top:0; z-index:5; background:var(--bg); box-shadow:0 1px 4px rgba(0,0,0,.1)}
+:root[data-theme="dark"] .masthead{box-shadow:0 1px 0 var(--border)}
+.masthead .wrap{display:flex; align-items:center; gap:0 1.8em; min-height:64px; flex-wrap:wrap}
+.masthead a{color:var(--text); font-size:.9em; padding:.7em 0}
+.masthead a.brand{font-weight:800; font-size:1.15em; letter-spacing:-.02em; margin-right:1em; color:var(--brand)}
+.masthead a.brand span{color:var(--warm)}
+.masthead a:hover{color:var(--brand-2); text-decoration:none}
+.masthead a.author{margin-left:auto; color:var(--text-light); font-size:.85em}
+.masthead .toggle{color:var(--text); display:flex; align-items:center; margin-left:.4em}
+.masthead .toggle svg{width:1.05em; height:1.05em; fill:currentColor}
+.masthead .toggle .moon{display:none}
+:root[data-theme="dark"] .masthead .toggle .sun{display:none}
+:root[data-theme="dark"] .masthead .toggle .moon{display:block}
+@media (max-width:760px){.masthead{position:static} .masthead .wrap{gap:0 1.1em; padding-block:.4em}
+  .masthead a{padding:.45em 0} .masthead a.brand{width:100%; margin:0; padding-bottom:.1em} .masthead a.author{display:none}}
+
+/* hero: a full-width band with the name as the one loud thing */
+header#top{background:linear-gradient(180deg,var(--tint) 0%,var(--bg) 100%); border-bottom:1px solid var(--tint-edge);
+  padding:clamp(2.5em,6vw,4.5em) 0 clamp(2em,4vw,3em)}
+h1.name{font-size:clamp(3rem,8vw,5.2rem); font-weight:800; letter-spacing:-.035em; line-height:1; margin:0 0 .35em;
+  color:var(--brand)}
+h1.name span{color:var(--warm)}
+.tagline{font-size:clamp(1.3em,2.4vw,1.7em); font-weight:700; line-height:1.3; margin:0 0 .9em; white-space:nowrap}
+header#top .lede{max-width:64ch}
+.pair{display:grid; gap:1.5em; margin-top:1.5em; grid-template-columns:minmax(0,1fr)}
+@media (min-width:900px){.pair{grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:center; gap:2em}}
+.json{background:var(--code-bg); border:1px solid var(--border-dark); border-radius:var(--radius);
+  padding:.9em 1em; overflow-x:auto; margin:0}
+.json pre{margin:0; font-family:var(--mono); font-size:.7rem; line-height:1.7; color:var(--code-text); white-space:pre}
+.json .p{color:#e45649; font-weight:700}   /* JSON key */
+.json .k{color:#a626a4; font-weight:700}   /* keyword */
+.json .f{color:#4078f2; font-weight:700}   /* function being defined */
+.json .m{color:#0184bc}                    /* call */
+.json .s{color:#50a14f}                    /* string */
+.json .d{color:#50a14f; font-style:italic} /* docstring */
+.json .n{color:#c18401}                    /* number */
+.json .c{color:#8b9197; font-style:italic} /* comment */
+:root[data-theme="dark"] .json .p{color:#e06c75}
+:root[data-theme="dark"] .json .k{color:#c678dd}
+:root[data-theme="dark"] .json .f{color:#61afef}
+:root[data-theme="dark"] .json .m{color:#56b6c2}
+:root[data-theme="dark"] .json .s,:root[data-theme="dark"] .json .d{color:#98c379}
+:root[data-theme="dark"] .json .n{color:#d19a66}
+:root[data-theme="dark"] .json .c{color:#9da5b4}
+.frame{background:var(--card); border:1px solid var(--border-dark); border-radius:var(--radius); padding:.35em;
+  line-height:0; position:relative; box-shadow:var(--shadow)}
+.frame video,.frame img{width:100%; aspect-ratio:16/9; height:auto; object-fit:cover; background:var(--paper);
+  border-radius:2px; display:block}
+.frame video{background:#000}
+.frame .dur{position:absolute; right:.8em; top:.8em; font-family:var(--mono); font-size:.7rem; line-height:1;
+  padding:.3em .45em; border-radius:2px; background:rgba(73,78,82,.85); color:#fff; pointer-events:none}
+.frame video[data-started] ~ .dur{display:none}
+.frame .role{position:absolute; left:.8em; top:.8em; font-size:.7rem; font-weight:700; line-height:1; padding:.35em .6em;
+  border-radius:999px; background:var(--brand); color:#fff; pointer-events:none}
+.empty{grid-column:1/-1; margin:0; padding:1.4em 1.2em; border:1px dashed var(--border-dark); border-radius:var(--radius);
+  color:var(--text-light); font-size:.95em; text-align:center}
+.caption{font-family:var(--serif); font-size:.8em; color:var(--caption); line-height:1.5; margin:.5em 0 0}
+
+.still{display:block; width:100%; text-align:left; position:relative}
+.still .go{position:absolute; left:.8em; bottom:.8em; display:flex; align-items:center; gap:.5em;
+  font-family:var(--sans); font-weight:700; font-size:.78rem; line-height:1; padding:.6em .85em;
+  border-radius:999px; background:var(--brand); color:#fff; box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.still .go::before{content:""; width:0; height:0; border-style:solid; border-width:5px 0 5px 8px;
+  border-color:transparent transparent transparent #fff}
+.still:hover .go{background:var(--brand-2)}
+
+.facts{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:.75em; margin:2em 0 0; padding:0; list-style:none;
+  font-size:.8em; color:var(--text-light)}
+.facts li{background:var(--card); border:1px solid var(--border-dark); border-radius:var(--radius); padding:.7em .9em .65em; box-shadow:var(--shadow)}
+.facts b{display:block; color:var(--brand); font-weight:800; font-size:1.55em; line-height:1.15; letter-spacing:-.02em; margin-bottom:.15em}
+
+/* demo reel */
+.reel{display:grid; gap:2em 1.25em; margin-top:1.75em; grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr))}
+.demo{scroll-margin-top:5em}
+.demo .frame{transition:box-shadow .15s ease, transform .15s ease, border-color .15s}
+.demo:hover .frame{box-shadow:0 8px 22px rgba(0,0,0,.12); transform:translateY(-2px)}
+:root[data-theme="dark"] .demo:hover .frame{box-shadow:0 8px 22px rgba(0,0,0,.5)}
+.demo:target .frame{border-color:var(--link)}
+.demo h3{margin-top:.8em}
+.demo .meta{font-size:.78em; color:var(--text-light); margin:.15em 0 .5em}
+.demo .meta span+span::before{content:"·"; margin:0 .45em}
+.demo .caption{margin:0}
+.demo video::cue{font-family:var(--sans); font-size:.9em; background:rgba(0,0,0,.75)}
+
+/* figure wall */
+.wall{display:grid; gap:.5em; margin-top:1.75em;
+  grid-template-columns:repeat(auto-fill,minmax(clamp(120px,14vw,190px),1fr))}
+.wall button{position:relative; background:var(--paper); line-height:0; aspect-ratio:8/5; overflow:hidden; display:block; width:100%;
+  border:1px solid var(--border-dark); border-radius:var(--radius); box-shadow:var(--shadow)}
+.wall button[hidden]{display:none}
+.wall button{transition:transform .12s ease, border-color .12s}
+.wall button:hover{border-color:var(--link); transform:translateY(-2px)}
+.wall img{width:100%; height:100%; object-fit:cover; display:block}
+.wall span{position:absolute; left:0; right:0; bottom:0; font-family:var(--sans); font-size:.62rem; line-height:1.3;
+  color:#31363a; background:rgba(255,255,255,.92); padding:.35em .5em; opacity:0; transition:opacity .12s; text-align:left}
+.wall button:hover span,.wall button:focus-visible span{opacity:1}
+@media (prefers-reduced-motion:reduce){.wall span{opacity:1}}
+
+/* bullet lists that read as prose */
+.points{margin:0 0 1.15em; padding-left:1.2em}
+.points li{margin-bottom:.45em}
+.points b{color:var(--text)}
+.points.two{columns:2 20rem; column-gap:2.5em}
+.points.two li{break-inside:avoid}
+.small{font-size:.92em}
+
+.contract{margin-top:2.25em}
+.contract .json pre{font-size:.7rem}
+
+/* method diagram: white card so the transparent PNG reads in both themes */
+.diagram{margin:1.5em 0 0; background:#fff; border:1px solid var(--border-dark); border-radius:var(--radius);
+  padding:clamp(.5em,2vw,1.25em); box-shadow:var(--shadow)}
+.diagram a{display:block; line-height:0}
+.diagram img{width:100%; height:auto; display:block}
+.diagram figcaption{margin:.6em 0 0; line-height:1.5; color:#777b7e}
+:root[data-theme="dark"] .diagram{border-color:#777}
+
+.wall-foot{display:flex; flex-wrap:wrap; gap:.6em 1.5em; align-items:center; justify-content:space-between; margin-top:.6em}
+.wall-foot .caption{margin:0}
+.more{font-weight:700; font-size:.85em; color:var(--brand); border:1px solid var(--border-dark); border-radius:999px;
+  padding:.5em 1.1em; background:var(--card); box-shadow:var(--shadow); white-space:nowrap}
+.more:hover{border-color:var(--brand); color:var(--brand-2)}
+.more::after{content:" ↓"} .more[aria-expanded="true"]::after{content:" ↑"}
+
+/* stages */
+.stages{margin:1.75em 0 0; padding:0; list-style:none; counter-reset:s; display:grid; gap:1.4em}
+@media (min-width:780px){.stages{grid-template-columns:repeat(4,1fr); gap:1.4em} .stages.five{grid-template-columns:repeat(5,1fr)}}
+@media (min-width:780px) and (max-width:1000px){.stages.five{grid-template-columns:repeat(3,1fr)}}
+.stages li{counter-increment:s; padding-top:.8em; border-top:1px solid var(--border-dark)}
+.stages li::before{content:counter(s); font-weight:700; font-size:.78em; color:var(--link); display:block; margin-bottom:.4em}
+.stages p{font-size:.88em; margin:0; color:var(--text-light)}
+
+@media (max-width:700px){.json pre{font-size:.64rem} .json{padding:.75em}}
+
+/* footer, as on the personal site */
+footer{background:var(--footer-bg); border-top:1px solid var(--border-dark); margin-top:2em; padding:1.5em 0 2.5em;
+  color:var(--text-light); font-size:.85em}
+
+.social{display:flex; gap:.75em; list-style:none; margin:0 0 1.1em; padding:0}
+.social a{display:flex; width:2.4em; height:2.4em; align-items:center; justify-content:center; border-radius:50%;
+  background:var(--card); border:1px solid var(--border-dark); color:var(--text); box-shadow:var(--shadow); transition:transform .12s, color .12s}
+.social a:hover{color:var(--brand); transform:translateY(-2px); text-decoration:none}
+.social svg{width:1.15em; height:1.15em; fill:currentColor}
+.social svg.stroke{fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
+footer .caption{font-size:.85em}
+</style>
+</head>
+<body>
+<div class="masthead"><div class="wrap">
+  <a class="brand" href="#top">Paper<span>2</span>Video</a>
+  <a href="#why">Why?</a>
+  <a href="#mine">My papers</a>
+  <a href="#demos">Videos</a>
+  <a href="#library">Figures</a>
+  <a href="#how">How it works?</a>
+  <a href="https://github.com/alinadevkota/Paper2Video">Source</a>
+  <a class="author" href="https://alinadevkota.github.io/">Alina Devkota</a>
+  <button class="toggle" id="theme-toggle" aria-label="Toggle dark theme" title="toggle theme">
+    <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0-14a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1zm0 16a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1zm9-7a1 1 0 0 1-1 1h-1a1 1 0 1 1 0-2h1a1 1 0 0 1 1 1zM5 12a1 1 0 0 1-1 1H3a1 1 0 1 1 0-2h1a1 1 0 0 1 1 1zm13.36-6.36a1 1 0 0 1 0 1.41l-.7.71a1 1 0 1 1-1.42-1.42l.71-.7a1 1 0 0 1 1.41 0zM7.76 16.24a1 1 0 0 1 0 1.41l-.7.71a1 1 0 1 1-1.42-1.42l.71-.7a1 1 0 0 1 1.41 0zm10.6 2.12a1 1 0 0 1-1.41 0l-.71-.7a1 1 0 1 1 1.42-1.42l.7.71a1 1 0 0 1 0 1.41zM7.76 7.76a1 1 0 0 1-1.41 0l-.71-.7a1 1 0 0 1 1.42-1.42l.7.71a1 1 0 0 1 0 1.41z"/></svg>
+    <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.7 14.9A8.5 8.5 0 0 1 9.1 3.3a1 1 0 0 0-1.2-1.3A10 10 0 1 0 22 16.1a1 1 0 0 0-1.3-1.2z"/></svg>
+  </button>
+</div></div>
+
+<header id="top"><div class="wrap">
+  <h1 class="name">Paper<span>2</span>Video</h1>
+  <p class="tagline">Papers you can watch!</p>
+  <p class="lede">Paper2Video reads a machine-learning paper or a lecture deck and produces a
+  narrated explainer video in which animated technical figures are drawn in step with the
+  sentence being spoken. The same source file also renders as a PowerPoint deck with the
+  narration in the speaker notes.</p>
+  <p>Everything visual is computed and deterministic. No generative video model is involved:
+  the figures are matplotlib drawings whose numbers can be checked against the paper.</p>
+
+  <div class="pair">
+    <div>
+      <div class="json"><pre><span class="p">"type"</span>: <span class="s">"illustration"</span>,
+<span class="p">"figure"</span>: <span class="s">"attention_lookup"</span>,
+<span class="p">"heading"</span>: <span class="s">"What attention computes"</span>,
+<span class="p">"caption"</span>: <span class="s">"A soft lookup over every position."</span>,
+<span class="p">"opts"</span>: {
+  <span class="p">"tokens"</span>: [<span class="s">"The"</span>, <span class="s">"animal"</span>, <span class="s">"didn't"</span>, <span class="s">"cross"</span>,
+              <span class="s">"the"</span>, <span class="s">"street"</span>, <span class="s">"it"</span>],
+  <span class="p">"query"</span>: <span class="n">6</span>,
+  <span class="p">"scores"</span>: [<span class="n">0.4</span>, <span class="n">3.2</span>, <span class="n">0.3</span>, <span class="n">0.9</span>, <span class="n">0.4</span>, <span class="n">1.6</span>, <span class="n">0.5</span>]
+},
+<span class="p">"narration"</span>: [
+  <span class="s">"Every position emits a query, a key and a value."</span>,
+  <span class="s">"Dot the query against every key."</span>,
+  <span class="s">"Softmax turns those scores into weights."</span>
+]</pre></div>
+      <p class="caption">One scene of a storyboard. A paper is a sequence of these: each names a
+      figure, supplies its content as data, and carries narration lines. Each line advances the
+      figure by one reveal.</p>
+    </div>
+    <div>
+      <button class="still frame" data-jump="transformer" data-t="71"
+              aria-label="Play the Transformer video from the attention scene">
+        <img src="posters/transformer.jpg" width="1280" height="720"
+             alt="The attention figure, rendered: seven token boxes, a bar over each key, and a thick arrow from 'animal' into the output.">
+        <span class="go">watch this scene · 1:11</span>
+      </button>
+      <p class="caption">The scene above, rendered. The softmax weights come from the scores in
+      the storyboard, so the 0.65 on <span class="mono">animal</span> can be checked by hand.</p>
+    </div>
+  </div>
+
+  <ul class="facts">
+    <li><b>9</b>videos here</li>
+    <li><b>2 h 12 m</b>of narrated figures</li>
+    <li><b>100</b>figure primitives</li>
+    <li><b>181</b>presets</li>
+    <li><b>13</b>storyboards</li>
+    <li><b>281 / 281</b>figures render clean</li>
+  </ul>
+</div></header>
+<div class="wrap">
+
+<section id="why">
+  <h2>Why?</h2>
+  <p>Reading a paper well takes hours. Most people triaging a literature list want the argument,
+  the mechanism and the caveats in about ten minutes, and the existing options are poor.</p>
+  <ul class="points">
+    <li><b>Abstracts</b> compress away the mechanism, which is usually the interesting part.</li>
+    <li><b>Conference talks</b> exist for a minority of papers and are rarely re-recorded when a
+      result is superseded.</li>
+    <li><b>LLM summaries</b> are text to text. A method that is fundamentally spatial, a vector
+      decomposing out of a subspace or a distribution collapsing onto one mode, gets described
+      in sentences instead of shown.</li>
+    <li><b>Slide decks</b> show figures but have no narration, so the reader supplies the
+      connective reasoning themselves.</li>
+  </ul>
+  <p>The gap is a medium that is visual, narrated, cheap enough to make per paper, and accurate
+  enough to trust. Video generation models fail the last requirement: they produce evocative
+  footage with no relationship to the paper's claims. A deterministic renderer driven by
+  structured data does not.</p>
+</section>
+
+<section id="mine">
+  <h2>My papers</h2>
+  <p>Explainers for the papers I wrote as first or second author, made with the same pipeline.
+  Each one starts from the paper's storyboard and is reviewed by the person who knows the
+  work best.</p>
+  <div class="reel" id="mine-reel"></div>
+</section>
+
+<section id="demos">
+  <h2>Papers and lectures I picked</h2>
+  <p>Each of these started as one PDF and one storyboard. Nothing is hand-animated; every frame
+  comes out of the same figure library. The automatic storyboards were a starting point, and
+  every one shown here was reviewed and edited by hand. Each ends with a caveat scene naming
+  what the paper does not establish, in proportion. Captions are built in.</p>
+
+  <div class="reel" id="reel"></div>
+</section>
+
+<section id="library">
+  <h2>One vocabulary, reused</h2>
+  <p>A <b>primitive</b> is a generic drawing function with no paper-specific strings or numbers:
+  <span class="mono">pipeline</span> draws a box-and-arrow flow for any architecture,
+  <span class="mono">curve_family</span> plots any family of curves with an optional Pareto
+  frontier, <span class="mono">vector_decompose</span> splits a vector out of any subspace.
+  A <b>preset</b> is a primitive plus a bag of options, pure data. A new paper normally
+  contributes presets only.</p>
+  <p>Two rules keep the library from becoming a junk drawer. Name the shape, not the paper:
+  <span class="mono">stacked_blocks</span>, never <span class="mono">transformer_encoder</span>.
+  And every visible string comes from the options. If a label is typed into the function body,
+  it belongs in a preset.</p>
+  <p>The library is young. A hundred primitives were enough for the videos on this page, but
+  most papers still call for shapes it does not have yet, so growing it is the main work ahead.
+  Every new primitive makes the next paper cheaper to storyboard.</p>
+
+  <div class="wall" id="wall"></div>
+  <div class="wall-foot">
+    <p class="caption">One frame per kind of figure, cropped from the videos. Hover for the
+    source; click to watch that moment.</p>
+    <button class="more" id="wall-more" aria-expanded="false" aria-controls="wall">See all figures</button>
+  </div>
+
+  <div class="contract">
+    <h3>The contract for a primitive</h3>
+    <div class="json"><pre><span class="k">def</span> <span class="f">my_figure</span>(R, ax, u, d, o):
+    <span class="d">"""One-line description, shown by --figures."""</span>
+    x, y, w, h = <span class="m">_box</span>(o)                  <span class="c"># the drawing rect</span>
+    a = <span class="m">_fade</span>(u, R.<span class="m">rt</span>(<span class="n">0</span>, <span class="n">0.4</span>, <span class="n">0.6</span>), <span class="n">0.6</span>)  <span class="c"># reveal on beat 0</span>
+    R.<span class="m">txt</span>(ax, x, y + h, o.<span class="m">get</span>(<span class="s">"title"</span>, <span class="s">""</span>), <span class="n">20</span>, R.c[<span class="s">"ink"</span>], a)</pre></div>
+    <p class="caption"><span class="mono">R.rt(k, …)</span> means "the start of narration beat
+    <i>k</i>". The renderer resolves it against the measured audio, so an element appears
+    exactly when its sentence begins.</p>
+  </div>
+</section>
+
+<section id="how">
+  <h2>How a video gets made?</h2>
+  <p>Five stages, one storyboard file in the middle. The storyboard is the review surface: a
+  person reads it, fixes the claims, adjusts the emphasis and re-renders.</p>
+
+  <figure class="diagram">
+    <a href="docs/paper2video_method.png" aria-label="Open the method diagram at full size">
+      <img src="docs/paper2video_method.png" width="1565" height="938" loading="lazy"
+           alt="Pipeline diagram. 1 Extract: Poppler turns the PDF into section text and page renders. 2 Plan: the Claude API, a local LLM or a hand-written outline produces a storyboard JSON, constrained by the figure catalogue. 3 Narrate: narration lines go through a TTS engine to audio with timing, one clip per line. 4 Render: the figure primitives library and the render engine draw frames synchronized with the audio. 5 Deliver: one storyboard yields an MP4 video and PPTX slides. A human review loop feeds back into rendering. No generative video models.">
+    </a>
+    <figcaption class="caption">Click to open at full size.</figcaption>
+  </figure>
+
+  <ol class="stages five">
+    <li><h3>Extract</h3><p>Poppler pulls section text, full-page renders and embedded figures
+      from the PDF. A scene can crop a lecture deck's own diagram straight from a page.</p></li>
+    <li><h3>Plan</h3><p>Claude drafts the storyboard against a fixed schema. The prompt carries
+      the live figure catalogue, so the model can only name figures that exist, and anything
+      the validator rejects is sent back for repair.</p></li>
+    <li><h3>Narrate</h3><p>Each line becomes one audio clip, cached by a hash of text, voice and
+      rate. Scene length is measured from the rendered audio, so a reveal lands on the
+      sentence that explains it.</p></li>
+    <li><h3>Render</h3><p>Every frame is drawn from scratch in matplotlib by the figure
+      primitives library and piped to ffmpeg, with soft subtitles.</p></li>
+    <li><h3>Deliver</h3><p>One storyboard gives an MP4 with narration and a PowerPoint deck with
+      native shapes where an emitter exists and the narration in the speaker notes.</p></li>
+  </ol>
+  <p class="caption" style="margin-top:1.6em">What actually runs for a normal render is a
+  text-to-speech model and nothing else. The LLM runs only during planning, and no generative
+  video model is involved at any stage.</p>
+</section>
+
+<section id="uses">
+  <h2>What it is for?</h2>
+  <ul class="points two">
+    <li><b>Literature triage.</b> Ten-minute explainers for a reading list, generated in batch,
+      with the caveats stated rather than buried.</li>
+    <li><b>Teaching.</b> A lecture deck plus a storyboard yields a narrated version for
+      asynchronous students, and an annotated deck for live use.</li>
+    <li><b>Paper promotion.</b> A video to ship with a preprint, drawn from the paper's own
+      numbers, without hiring an animator.</li>
+    <li><b>Lab onboarding.</b> A canonical explainer per foundational paper, editable as a text
+      file when the group's framing changes.</li>
+    <li><b>Comparative review.</b> One storyboard can cover two papers side by side.</li>
+    <li><b>A diagram library.</b> The primitives are usable on their own for slides and figures.</li>
+  </ul>
+</section>
+
+</div>
+
+<footer><div class="wrap">
+  <ul class="social" aria-label="Links">
+    <li><a href="https://github.com/alinadevkota" aria-label="GitHub" title="GitHub">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a></li>
+    <li><a href="https://www.linkedin.com/in/alina-devkota-47415413a/" aria-label="LinkedIn" title="LinkedIn">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg></a></li>
+    <li><a href="https://alinadevkota.github.io/" aria-label="Website" title="Website">
+      <svg viewBox="0 0 24 24" aria-hidden="true" class="stroke"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></a></li>
+  </ul>
+  <p>Built by <a href="https://alinadevkota.github.io/">Alina Devkota</a>. This site and the videos are on
+  <a href="https://github.com/alinadevkota/Paper2Video">GitHub</a>, released under CC0.</p>
+  <p class="caption">Lecture figures are cropped from course slides and credited on the frame. Paper figures
+  are used for commentary and attributed to their authors.</p>
+</div></footer>
+
+<script>
+// One entry per file in videos/. Duration and scene count come from make_assets.py.
+const VIDEOS = [
+  {id:"transformer", title:"Attention Is All You Need",
+   by:"Vaswani et al. · NeurIPS 2017", dur:"12:14", scenes:16,
+   blurb:"Attention as a soft lookup, why 1/√d<sub>k</sub> keeps the softmax gradient alive, sinusoidal positions, and the path-length argument for long-range dependencies."},
+  {id:"diffusion", title:"Diffusion and score-based models",
+   by:"10-799 lectures 2 and 4 · Yutong (Kelly) He", dur:"21:25", scenes:31,
+   blurb:"Two lectures, one story: DDPM as a VAE with a fixed encoder, denoising score matching, then the forward and reverse SDEs that show they are the same model. Figures cropped from the slides."},
+  {id:"lejepa", title:"LeJEPA",
+   by:"Balestriero &amp; LeCun · Brown, Meta-FAIR, NYU", dur:"15:38", scenes:19,
+   blurb:"Why anisotropic embeddings hurt, the sliced one-direction-at-a-time test behind SIGReg, the Epps–Pulley statistic, and a training loss that finally tracks downstream accuracy."},
+  {id:"dreamer4", title:"Dreamer 4",
+   by:"Hafner, Yan &amp; Lillicrap · Google DeepMind", dur:"17:29", scenes:21,
+   blurb:"Training agents inside a world model: a causal tokenizer, flow matching, shortcut forcing in data space, imagination training, and the offline Minecraft diamond result."},
+  {id:"good", title:"GOOD: training-free guided diffusion for OOD detection",
+   by:"Gao et al. · NeurIPS 2025", dur:"13:28", scenes:17,
+   blurb:"Guide the sampler, not the embedding: free-energy and feature-sparsity guidance, a grid of step sizes that sets how strange the outliers get, and scoring at test time."},
+  {id:"vlm_scaling", title:"Inference-optimal VLMs need only one visual token",
+   by:"Li, Goyal, Semedo &amp; Kolter · CMU, Bosch", dur:"10:26", scenes:16,
+   blurb:"A scaling law with two knobs. Error falls about five times faster with parameters than with visual tokens, so compress hard and spend the savings on a bigger model."},
+  {id:"lacot", title:"Latent chain-of-thought for visual reasoning",
+   by:"Sun et al. · RIT, Snap, Rochester, ARL", dur:"14:11", scenes:16,
+   blurb:"Reasoning as posterior inference over a latent rationale: GFlowNets, reference-guided exploration instead of clipping, and Bayesian ranking instead of best-of-N."},
+  {id:"modality_gap", title:"Respecting the modality gap in post-hoc OOD detection",
+   by:"Hu et al. · UTS, Queensland · ICML 2026", dur:"14:14", scenes:24,
+   blurb:"Text embeddings are the wrong prototypes: only the in-span component can align. So start from text and learn the prototypes online from the test stream, one gradient step per sample."},
+  {id:"intuitive_physics", title:"Can VLMs learn intuitive physics from interaction?",
+   by:"Schulze Buschoff et al. · Helmholtz Munich · ICML 2026", dur:"12:44", scenes:14,
+   blurb:"A carefully reported negative result. GRPO and SFT both learn the same shortcut, while linear probes show the physics was decodable from the first layers all along."},
+];
+const TITLE = Object.fromEntries(VIDEOS.map(v => [v.id, v.title]));
+
+// Videos of my own first- and second-author papers. Same fields as VIDEOS plus `role`.
+// Drop the mp4 in videos/, run make_assets.py, then add an entry here.
+const MINE = [
+  // {id:"my_paper", title:"Paper title", by:"Devkota et al. · Venue 2026", role:"First author",
+  //  dur:"12:00", scenes:16, blurb:"One paragraph on what the video shows."},
+];
+
+const card = v => `
+  <article class="demo" id="${v.id}">
+    <div class="frame">
+      <video src="videos/${v.id}.mp4" poster="posters/${v.id}.jpg" controls preload="none"
+             playsinline crossorigin="anonymous" aria-label="${v.title}, narrated video">
+        <track kind="captions" src="captions/${v.id}.vtt" srclang="en" label="English">
+      </video>
+      <span class="dur" aria-hidden="true">${v.dur}</span>
+      ${v.role ? `<span class="role">${v.role}</span>` : ""}
+    </div>
+    <h3>${v.title}</h3>
+    <p class="meta"><span>${v.by}</span><span>${v.scenes} scenes</span><span>${v.dur}</span></p>
+    <p class="caption">${v.blurb}</p>
+  </article>`;
+
+document.getElementById("reel").innerHTML = VIDEOS.map(card).join("");
+document.getElementById("mine-reel").innerHTML = MINE.length
+  ? MINE.map(card).join("")
+  : `<p class="empty">Videos for these papers are being rendered and will appear here.</p>`;
+
+// Frames on the wall, one per kind of figure: [file stem, seconds into that video]. Made by make_assets.py.
+const WALL = [
+  ["transformer-01-50",110],["dreamer4-00-52",52],["lejepa-03-54",234],
+  ["vlm_scaling-03-39",219],["good-07-24",444],["transformer-03-03",183],
+  ["dreamer4-02-37",157],["lejepa-08-36",516],["lejepa-14-23",863],
+  ["modality_gap-03-33",213],["transformer-05-30",330],["good-06-03",363],
+  ["intuitive_physics-01-54",114],["vlm_scaling-06-47",407],["diffusion-03-12",192],
+  ["transformer-06-43",403],["lacot-07-48",468],["dreamer4-04-22",262],
+  ["intuitive_physics-07-00",420],["lejepa-02-20",140],["transformer-00-36",36],
+  ["modality_gap-09-15",555],["intuitive_physics-05-44",344],["transformer-07-57",477],
+  ["intuitive_physics-08-16",496],["intuitive_physics-00-38",38],
+];
+const mmss = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
+document.getElementById("wall").innerHTML = WALL.map(([f,t]) => {
+  const id = f.replace(/-\d\d-\d\d$/,"");
+  return `<button data-jump="${id}" data-t="${t}" aria-label="${TITLE[id]} at ${mmss(t)}">
+    <img src="figures/${f}.jpg" width="640" height="400" alt="" loading="lazy">
+    <span>${TITLE[id]} · ${mmss(t)}</span></button>`;
+}).join("");
+
+// Two rows of the wall by default; the button shows the rest.
+const wall = document.getElementById("wall"), more = document.getElementById("wall-more");
+function trimWall() {
+  const cols = getComputedStyle(wall).gridTemplateColumns.split(" ").length;
+  const open = more.getAttribute("aria-expanded") === "true";
+  const tiles = wall.children;
+  for (let i = 0; i < tiles.length; i++) tiles[i].hidden = !open && i >= cols * 2;
+  more.hidden = tiles.length <= cols * 2;
+  more.textContent = open ? "Show fewer" : `See all ${tiles.length} figures`;
+}
+more.addEventListener("click", () => {
+  const open = more.getAttribute("aria-expanded") !== "true";
+  more.setAttribute("aria-expanded", open);
+  trimWall();
+  if (!open) document.getElementById("library").scrollIntoView({block:"start"});
+});
+addEventListener("resize", trimWall);
+trimWall();
+
+// Only one clip plays at a time; the poster's duration badge goes once it starts.
+const players = [...document.querySelectorAll(".demo video")];  // both reels
+players.forEach(v => v.addEventListener("play", () => {
+  v.dataset.started = "";
+  players.forEach(o => { if (o !== v) o.pause(); });
+}));
+
+// Hero still and wall tiles jump into the clip they were cut from.
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-jump]");
+  if (!b) return;
+  const card = document.getElementById(b.dataset.jump);
+  const v = card.querySelector("video"), t = +b.dataset.t;
+  card.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"center"});
+  history.replaceState(null, "", "#" + b.dataset.jump);
+  const seek = () => { v.currentTime = t; v.play().catch(() => {}); };
+  if (v.readyState >= 1) seek(); else { v.addEventListener("loadedmetadata", seek, {once:true}); v.load(); }
+});
+
+// Theme toggle: same storage key and attribute as the personal site.
+document.getElementById("theme-toggle").addEventListener("click", () => {
+  const dark = document.documentElement.getAttribute("data-theme") !== "dark";
+  if (dark) document.documentElement.setAttribute("data-theme", "dark");
+  else document.documentElement.removeAttribute("data-theme");
+  try { localStorage.setItem("theme", dark ? "dark" : "light"); } catch (e) {}
+});
+</script>
+</body>
+</html>

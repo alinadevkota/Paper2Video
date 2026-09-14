@@ -1,0 +1,21 @@
+# Core: drawing and rendering
+matplotlib>=3.8
+numpy>=1.26
+pillow>=10
+
+# Planning (make_storyboard.py); optional, falls back to plain HTTP without it
+anthropic>=1.0
+
+# Slides (storyboard2pptx.py)
+python-pptx>=0.6.23
+
+# Narration: any one of these is enough; the tool picks the best one installed.
+# edge-tts needs network. kokoro needs soundfile. piper / espeak-ng / say are system tools.
+edge-tts>=6.1
+soundfile>=0.12
+# kokoro>=0.9
+
+# System tools, not pip packages:
+#   ffmpeg (libx264)                      video encode and mux
+#   poppler-utils                          pdftotext, pdftoppm, pdfimages
+#   espeak-ng or piper (optional)          offline narration

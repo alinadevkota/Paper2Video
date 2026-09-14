@@ -1,0 +1,274 @@
+WEBVTT
+
+00:00:00.450 --> 00:00:07.290
+Inference optimal vision language models need only one visual
+token, but larger models.
+
+00:00:07.740 --> 00:00:11.100
+From Carnegie Mellon and the Bosch Center for AI.
+
+00:00:12.450 --> 00:00:20.778
+A vision language model runs the image through an encoder like
+CLIP, and hands the resulting patch tokens to a language
+
+00:00:21.228 --> 00:00:28.620
+For CLIP ViT-L at standard resolution, that is five hundred
+and seventy-six tokens for a single image.
+
+00:00:29.070 --> 00:00:32.766
+The user's actual question is maybe fifty tokens.
+
+00:00:33.216 --> 00:00:41.448
+So the image accounts for over ninety percent of what the
+language model processes, and therefore most of the latency.
+
+00:00:42.798 --> 00:00:48.630
+Inference cost is the standard estimate: parameters times
+tokens processed.
+
+00:00:49.080 --> 00:00:58.320
+The tokens split three ways — the text prompt Q, the visual
+tokens V that survive compression, and the generated tokens G.
+
+00:00:58.770 --> 00:01:03.522
+Because it is a product, there are two independent ways to
+make a model cheaper.
+
+00:01:03.972 --> 00:01:13.932
+Shrink the language model, or send it fewer visual tokens.
+Both cost you accuracy, and it is not obvious which you should
+
+00:01:15.282 --> 00:01:22.098
+Token compression is a small learnable module sitting between
+the vision encoder and the language model.
+
+00:01:22.548 --> 00:01:34.212
+The encoder produces n tokens laid out as a square grid of
+image patches. The projector maps them to m tokens, with m
+
+00:01:34.662 --> 00:01:44.526
+One common design collapses each s-by-s region of patches into
+a single token, then attends within that region to recover
+
+00:01:44.976 --> 00:01:55.752
+Worth being precise: this is not the same as using a smaller
+encoder or a lower resolution image. Those barely reduce the
+
+00:01:57.102 --> 00:02:00.006
+Which brings the actual question into focus.
+
+00:02:00.456 --> 00:02:09.336
+Given a fixed inference budget, what is the right trade
+between language model size and visual token count? Nobody had
+
+00:02:10.686 --> 00:02:17.358
+So they fit one. Downstream error as a joint function of
+parameters and visual tokens.
+
+00:02:17.808 --> 00:02:26.232
+Alpha says how fast error falls as the language model grows. A
+better pretrained family gives a larger alpha.
+
+00:02:26.682 --> 00:02:34.722
+Beta says how fast error falls as you add visual tokens back.
+A better compression algorithm gives a larger beta.
+
+00:02:35.172 --> 00:02:47.412
+Fitted on Qwen-1.5 backbones from half a billion to seven
+billion parameters, and token counts from one to five hundred
+
+00:02:47.862 --> 00:02:59.190
+Alpha is zero point zero seven seven. Beta is zero point zero
+one five. Error moves about five times faster with parameters
+
+00:03:00.540 --> 00:03:09.660
+Plotted against inference FLOPs, each curve is one language
+model size and each dot along it is a different visual token
+
+00:03:10.110 --> 00:03:22.566
+Two things stand out. First, error falls log-linearly as you
+add visual tokens back — there is no free lunch, contrary to
+
+00:03:23.016 --> 00:03:31.512
+The authors attribute that discrepancy to narrow evaluation
+suites that do not capture the model's full capability.
+
+00:03:31.962 --> 00:03:37.530
+Second, the curves are stacked by model size, and the gaps
+between them are large.
+
+00:03:37.980 --> 00:03:49.716
+The dotted line is the Pareto frontier: the lowest error
+achievable at each compute budget. It runs along the largest
+
+00:03:51.066 --> 00:03:54.474
+Fix the compute budget and read off the options.
+
+00:03:54.924 --> 00:04:02.916
+A half-billion model with all five hundred and seventy-six
+tokens. A one-point-eight billion model with a hundred and
+
+00:04:03.366 --> 00:04:08.286
+Four billion with sixty-four. Seven billion with thirty-six.
+
+00:04:08.736 --> 00:04:15.936
+Each step trades visual tokens for parameters at constant
+cost, and each step lowers the error.
+
+00:04:16.386 --> 00:04:24.834
+Push it all the way and the compute-optimal configuration is
+the largest model you can afford, fed a single visual token.
+
+00:04:26.184 --> 00:04:29.904
+That is the headline, and it is genuinely surprising.
+
+00:04:30.354 --> 00:04:38.562
+For visual reasoning, one token plus a big model beats many
+tokens plus a small one, at equal cost.
+
+00:04:39.912 --> 00:04:46.560
+But the single-token result assumes the text prompt is cached,
+so Q is effectively zero.
+
+00:04:47.010 --> 00:04:54.642
+That is realistic for a fixed prompt — a driver assistance
+system asking the same question of every frame.
+
+00:04:55.092 --> 00:05:04.428
+When the prompt varies, the model pays a fixed cost for the
+text no matter what, and a few extra visual tokens become
+
+00:05:04.878 --> 00:05:12.918
+At fifty text tokens the optimum moves to around sixteen
+visual tokens. At a hundred it climbs further.
+
+00:05:13.368 --> 00:05:22.608
+So the honest version of the claim is: as few visual tokens as
+the prompt length allows, and the biggest model that fits.
+
+00:05:23.958 --> 00:05:25.782
+Two checks are worth noting.
+
+00:05:26.232 --> 00:05:37.488
+The laws were fitted only up to seven billion parameters, then
+used to predict a fourteen billion model. They land within two
+
+00:05:37.938 --> 00:05:47.802
+And a negative result the authors report honestly: repeating
+the compressed visual tokens to burn more compute produced no
+
+00:05:48.252 --> 00:06:00.516
+That is a real contrast with text language models, where extra
+test-time compute helps. Their reading is that current VLM
+
+00:06:01.866 --> 00:06:06.066
+Now the part that stops this from being a universal rule.
+
+00:06:06.516 --> 00:06:13.932
+Refit the same law on DocVQA and TextVQA, where the task is
+reading text out of an image.
+
+00:06:14.382 --> 00:06:22.734
+Alpha drops to zero point zero two nine and beta rises to zero
+point zero four eight. The ordering inverts.
+
+00:06:23.184 --> 00:06:33.744
+For document tasks, visual tokens dominate and extra
+parameters barely help. A page of dense text simply does not
+
+00:06:34.194 --> 00:06:39.162
+Same architecture, same scaling law, opposite prescription.
+
+00:06:40.512 --> 00:06:45.480
+Here is the split on real benchmarks at matched inference
+cost.
+
+00:06:45.930 --> 00:06:57.570
+Swapping a small model with many tokens for a large model with
+few gives large gains on the reasoning suites — over thirty
+
+00:06:58.020 --> 00:07:04.236
+POPE is roughly flat, which is a hallucination benchmark
+rather than a reasoning one.
+
+00:07:04.686 --> 00:07:11.670
+And on DocVQA and TextVQA the same trade loses you double-
+digit percentages.
+
+00:07:12.120 --> 00:07:22.104
+The lesson is not that one token is always right. It is that
+the right answer depends on whether your task needs to read
+
+00:07:23.454 --> 00:07:26.622
+Which leads to the paper's argument about the field.
+
+00:07:27.072 --> 00:07:40.080
+Most token compression work targets a modest reduction — five
+hundred and seventy-six down to a hundred and forty-four, or
+
+00:07:40.530 --> 00:07:50.610
+But the compute-optimal regime is one, four or sixteen tokens.
+That is ninety-seven to ninety-nine point eight percent
+
+00:07:51.060 --> 00:08:02.076
+An algorithm tuned to lose nothing at four-times compression
+is not obviously the right algorithm at five-hundred-times
+
+00:08:03.426 --> 00:08:08.250
+So they propose a compressor designed for that regime, called
+QueCC.
+
+00:08:08.700 --> 00:08:17.700
+The idea is simple. When you only get one token, which part of
+the image you keep matters enormously — and that depends on
+
+00:08:18.150 --> 00:08:31.926
+So the user's query is injected before compression rather than
+after. The last hidden state of the query, taken from the
+
+00:08:32.376 --> 00:08:43.872
+Those query-fused tokens are downsampled by a learnable depth-
+wise convolution, then local cross-attention runs between each
+
+00:08:44.322 --> 00:08:55.818
+An MLP maps the result into the language model's input space.
+And when the prompt is fixed, that query embedding can be
+
+00:08:57.168 --> 00:09:02.136
+At one visual token, QueCC edges out the alternatives.
+
+00:09:02.586 --> 00:09:13.410
+Measured as the gap to the uncompressed LLaVA baseline, it
+closes twelve percent of that gap on MME and nineteen percent
+
+00:09:13.860 --> 00:09:18.276
+Note the last bar though. Uncompressed still scores far
+higher.
+
+00:09:18.726 --> 00:09:31.158
+The claim was never that one token matches five hundred and
+seventy-six. It is that one token with a bigger model beats
+
+00:09:32.508 --> 00:09:45.084
+To summarise: for visual reasoning, parameters buy roughly
+five times more accuracy per FLOP than visual tokens do, so
+
+00:09:45.534 --> 00:09:48.966
+But the caveats matter here more than usual.
+
+00:09:49.416 --> 00:10:00.336
+The law is fitted on one model family, one compressor and one
+encoder, so alpha describes Qwen-1.5, not language models in
+
+00:10:00.786 --> 00:10:10.962
+The vision encoder's cost is excluded as a constant —
+reasonable at five hundred tokens, much less so at one, where
+
+00:10:11.412 --> 00:10:19.188
+The single-token result needs a cacheable prompt. With a real
+varying query the optimum is nearer sixteen.
+
+00:10:19.638 --> 00:10:25.950
+And for anything involving reading text off an image, the
+entire recommendation inverts.
+

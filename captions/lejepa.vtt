@@ -1,0 +1,349 @@
+WEBVTT
+
+00:00:00.450 --> 00:00:06.906
+LeJEPA: provable and scalable self-supervised learning without
+the heuristics.
+
+00:00:07.356 --> 00:00:14.172
+By Randall Balestriero and Yann LeCun, from Brown, Meta-FAIR
+and NYU.
+
+00:00:15.522 --> 00:00:29.898
+A Joint-Embedding Predictive Architecture takes two views of
+the same thing — two crops, two augmentations, two video
+
+00:00:30.348 --> 00:00:35.604
+That objective captures what the views share, which is the
+semantic content you wanted.
+
+00:00:36.054 --> 00:00:43.614
+But it has a trivial solution. Map every input to the same
+vector and the prediction is perfect.
+
+00:00:44.064 --> 00:00:52.632
+So every JEPA needs a second ingredient to stop that. The
+design of that second ingredient is what this paper is about.
+
+00:00:53.982 --> 00:00:59.862
+The failure is not one thing. Complete collapse maps
+everything to a single point.
+
+00:01:00.312 --> 00:01:10.416
+Dimensional collapse is subtler: the embeddings spread out,
+but only within a low-dimensional subspace, so most of the
+
+00:01:10.866 --> 00:01:19.026
+And even without collapse, the embeddings can be anisotropic —
+stretched far more along some directions than others.
+
+00:01:19.476 --> 00:01:29.484
+The paper's first claim is that all three are the same
+problem: the embedding distribution has the wrong shape, and
+
+00:01:30.834 --> 00:01:51.426
+Current recipes prevent collapse with a stack of tricks. Stop-
+gradient. A teacher-student pair with a carefully tuned
+
+00:01:51.876 --> 00:01:58.524
+The authors call this a game of whack-a-mole, and the
+criticism is precise rather than rhetorical.
+
+00:01:58.974 --> 00:02:12.870
+Each mechanism is under-specified: it can be satisfied while
+the embeddings are still degenerate. Several are quadratic in
+
+00:02:13.320 --> 00:02:22.440
+The result is that JEPA training is brittle, and the field
+responded by scaling data and models rather than fixing the
+
+00:02:23.790 --> 00:02:27.774
+The paper's move is to ask the question nobody had answered.
+
+00:02:28.224 --> 00:02:36.312
+Not how to avoid collapse, but what distribution the
+embeddings should follow — and then derive the mechanism from
+
+00:02:37.662 --> 00:02:40.830
+Here is how they make that question answerable.
+
+00:02:41.280 --> 00:02:49.488
+A foundation model's embeddings will be used by a downstream
+probe — usually a linear one fit on labels you do not have
+
+00:02:49.938 --> 00:02:58.578
+So ask: which embedding distribution minimises the probe's
+error, averaged over all the tasks you might encounter?
+
+00:02:59.028 --> 00:03:07.908
+You cannot choose the labels, and you cannot choose the probe.
+The only thing you control is the distribution of the
+
+00:03:08.358 --> 00:03:14.934
+That reframing turns a vague design question into a well-posed
+optimisation problem.
+
+00:03:16.284 --> 00:03:28.356
+Take two embeddings that span the same column space and carry
+the same total variance. One is isotropic, the other has a
+
+00:03:28.806 --> 00:03:35.478
+They contain the same information. But the estimators you fit
+on them behave very differently.
+
+00:03:35.928 --> 00:03:45.864
+Lemma 1: with ridge regularisation, there is always some
+downstream task for which the anisotropic embedding gives a
+
+00:03:46.314 --> 00:03:56.706
+Lemma 2: without regularisation, the total variance of the
+fitted coefficients is minimised exactly when the embedding is
+
+00:03:57.156 --> 00:04:10.740
+Empirically the effect is stark. Refit logistic regression on
+resampled training sets and the anisotropic case gives
+
+00:04:12.090 --> 00:04:19.554
+Isotropy is what the linear analysis gives you. It says
+nothing about which isotropic distribution.
+
+00:04:20.004 --> 00:04:29.028
+To pin that down they turn to nonlinear probes — radius-based
+k-nearest-neighbours and kernel regression, both analytically
+
+00:04:29.478 --> 00:04:37.710
+The integrated squared bias of those predictors depends on the
+embedding density through a Fisher-information-like
+
+00:04:38.160 --> 00:04:47.952
+Theorem 1: among distributions with a fixed covariance
+constraint, the isotropic Gaussian is the unique minimiser of
+
+00:04:48.402 --> 00:04:55.986
+So the target is not a design choice. It falls out of asking
+to minimise worst-case downstream risk.
+
+00:04:57.336 --> 00:05:01.872
+Which leaves the practical problem, and it is not a small one.
+
+00:05:02.322 --> 00:05:08.754
+Matching a distribution in high dimensions is exactly the
+thing that is supposed to be intractable.
+
+00:05:10.104 --> 00:05:22.512
+SIGReg — Sketched Isotropic Gaussian Regularization — reframes
+distribution matching as a statistical test, and then sketches
+
+00:05:22.962 --> 00:05:35.802
+Project the embeddings onto a random unit direction, and
+compare the resulting univariate distribution against a
+
+00:05:36.252 --> 00:05:48.804
+The example on screen shows why this is not naive. This cloud
+has perfectly standard Gaussian marginals along both axes, and
+
+00:05:49.254 --> 00:05:57.774
+Every moment-matching or covariance-based criterion is
+satisfied. Yet the joint distribution is plainly degenerate.
+
+00:05:58.224 --> 00:06:07.992
+Project along the right diagonal, though, and the univariate
+density becomes visibly bimodal. One direction exposes it.
+
+00:06:09.342 --> 00:06:14.886
+The justification is a classical theorem, adapted here to the
+sphere.
+
+00:06:15.336 --> 00:06:25.632
+If every one-dimensional projection of two random vectors
+agrees in distribution, then the two random vectors agree in
+
+00:06:26.082 --> 00:06:37.554
+So slicing loses nothing in principle, and the union-
+intersection principle turns the family of univariate tests
+
+00:06:38.004 --> 00:06:38.244
+Theorem 2 confirms both properties a test needs: the right
+false-positive rate under the null, and power going to one
+
+00:06:39.594 --> 00:06:44.562
+That leaves a design choice: which univariate goodness-of-fit
+test.
+
+00:06:45.012 --> 00:07:09.972
+Moment-based tests, like the extended Jarque-Bera, are
+differentiable and cheap, but Theorem 3 shows that any finite
+
+00:07:10.422 --> 00:07:25.206
+CDF-based tests — Cramér-von Mises, Anderson-Darling, Watson —
+require sorting. Sorting is not differentiable, and it breaks
+
+00:07:25.656 --> 00:07:32.472
+Characteristic-function tests avoid both problems, which is
+why they pick the Epps-Pulley statistic.
+
+00:07:32.922 --> 00:07:49.554
+Incidentally, this framing subsumes prior work: plug in a test
+that only matches mean and variance and LeJEPA reduces to
+
+00:07:50.904 --> 00:07:59.448
+Epps-Pulley compares the empirical characteristic function of
+the projected samples against the target's, in a weighted L2
+
+00:07:59.898 --> 00:08:14.298
+Three properties make it the right choice. The empirical
+characteristic function is an average of complex exponentials,
+
+00:08:14.748 --> 00:08:28.308
+Theorem 4 bounds the loss, its gradient and its curvature,
+uniformly, regardless of the input distribution. That is what
+
+00:08:28.758 --> 00:08:33.726
+And the cost is linear in batch size and dimension, not
+quadratic.
+
+00:08:34.176 --> 00:08:47.784
+The integral is done by trapezoidal quadrature with seventeen
+knots, and the minibatch introduces a bias that Theorem 6
+
+00:08:49.134 --> 00:09:01.422
+The obvious worry is the curse of dimensionality. If you need
+exponentially many directions to constrain a 1024-dimensional
+
+00:09:01.872 --> 00:09:19.824
+The first argument is smoothness. Theorem 5 bounds the worst-
+case discrepancy over all directions in terms of the Sobolev
+
+00:09:20.274 --> 00:09:31.890
+The second argument is that you are running SGD. The
+directions are resampled every minibatch, so the cumulative
+
+00:09:32.340 --> 00:09:40.188
+That effect is large. Sixteen resampled directions per step
+beats a fixed set of thousands.
+
+00:09:40.638 --> 00:09:53.526
+In a controlled test on 1024 dimensions with only 100 samples
+and 16 directions, SIGReg still finds and unfolds the two
+
+00:09:54.876 --> 00:10:00.612
+Put the two pieces together and you have LeJEPA — Latent-
+Euclidean JEPA.
+
+00:10:01.062 --> 00:10:10.614
+The prediction term has every view predict the mean of the
+global views, which is just an L2 distance and needs no
+
+00:10:11.064 --> 00:10:18.168
+The SIGReg term pulls each view's embedding distribution
+toward an isotropic Gaussian.
+
+00:10:18.618 --> 00:10:30.930
+Lambda balances them, and it is the only hyperparameter. There
+is no stop-gradient, no teacher, no EMA, no scheduler, no
+
+00:10:31.380 --> 00:10:46.548
+The whole thing is about fifty lines of PyTorch, and the
+recommended defaults are lambda equals 0.05, two global and
+
+00:10:47.898 --> 00:10:53.250
+The stability claim is the one most worth checking, so they
+check it broadly.
+
+00:10:53.700 --> 00:11:05.988
+Fifty architectures from eight families — ResNets, ConvNeXts,
+MaxViTs, LeViTs, EfficientNets, ViTs — pretrained on
+
+00:11:06.438 --> 00:11:15.462
+Every one lands between 91.5 and 95 percent with a frozen
+backbone and a linear probe. Nothing collapses.
+
+00:11:15.912 --> 00:11:27.792
+That matters because most modern self-supervised methods are
+tuned specifically for Vision Transformers and do not transfer
+
+00:11:28.242 --> 00:11:41.586
+The ablations tell the same story: performance is flat across
+lambda, across batch sizes down to 128, across the number of
+
+00:11:42.936 --> 00:11:48.336
+Here is a consequence that falls out of the design rather than
+being aimed at.
+
+00:11:48.786 --> 00:12:02.274
+In current JEPAs the training loss correlates poorly with
+downstream accuracy, and may not even decrease monotonically.
+
+00:12:02.724 --> 00:12:13.740
+LeJEPA's training loss correlates with downstream linear-probe
+accuracy at Spearman 85 percent across datasets and
+
+00:12:14.190 --> 00:12:22.446
+Dividing the loss by lambda to the power of about zero point
+four pushes that to roughly 99 percent.
+
+00:12:22.896 --> 00:12:32.928
+That gives label-free model selection and cross-validation,
+which is a genuinely useful practical result for anyone doing
+
+00:12:34.278 --> 00:12:39.102
+The last result is the one with the clearest practical
+consequence.
+
+00:12:39.552 --> 00:12:58.344
+Practitioners in specialised domains — astronomy, medicine,
+microscopy — normally cannot pretrain their own model. The
+
+00:12:58.794 --> 00:13:15.858
+On Galaxy10, eleven thousand images of galaxy morphologies,
+LeJEPA pretrained directly in-domain beats DINOv2 and DINOv3
+
+00:13:16.308 --> 00:13:25.476
+It does so with small backbones and default hyperparameters,
+and the same holds on Flowers102 with only about a thousand
+
+00:13:25.926 --> 00:13:37.878
+The claim is not that in-domain always wins. It is that when
+the framework is stable enough to just run, in-domain
+
+00:13:39.228 --> 00:13:55.740
+It also scales. ViT-Large reaches 77.1 percent online linear
+probe on ImageNet-1k, ConvNeXtV2-Huge 78.5, and a ViT-H slash
+
+00:13:56.190 --> 00:14:05.526
+On few-shot transfer it beats I-JEPA with a smaller model and
+a third of the training epochs — a hundred against three
+
+00:14:05.976 --> 00:14:17.064
+And the training curve stays smooth all the way up to a 1.8
+billion parameter ViT-gigantic, with no warmup schedules or
+
+00:14:17.514 --> 00:14:32.274
+The PCA of the learned features also shows emergent object-
+background separation, and thresholding the CLS attention
+
+00:14:33.624 --> 00:14:41.712
+To summarise: the contribution is to replace a pile of anti-
+collapse heuristics with a target and a way to hit it.
+
+00:14:42.162 --> 00:15:00.258
+The target is the isotropic Gaussian, which provably minimises
+worst-case downstream risk. The mechanism is SIGReg, which
+
+00:15:00.708 --> 00:15:02.652
+Four things to keep in mind, though.
+
+00:15:03.102 --> 00:15:17.214
+Seventy-nine percent on ImageNet-1k is competitive, not
+dominant. The clearest wins are small-scale in-domain
+
+00:15:17.664 --> 00:15:26.592
+The optimality proofs assume particular probe families and a
+fixed-covariance constraint, so they are narrower than
+
+00:15:27.042 --> 00:15:32.634
+The direction-count bound depends on a smoothness parameter
+that is assumed rather than measured.
+
+00:15:33.084 --> 00:15:37.692
+And the minibatch gradient bias is small but not zero.
+

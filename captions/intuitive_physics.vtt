@@ -1,0 +1,311 @@
+WEBVTT
+
+00:00:00.450 --> 00:00:05.274
+Can vision language models learn intuitive physics from
+interaction?
+
+00:00:05.724 --> 00:00:13.620
+From the Institute for Human-Centered AI at Helmholtz Munich,
+published at ICML 2026.
+
+00:00:14.070 --> 00:00:20.454
+Note the question mark in the title. This is a negative
+result, and it is reported carefully.
+
+00:00:21.804 --> 00:00:31.044
+Intuitive physics is the fast, implicit sense of how objects
+behave — the expectations you never have to reason about.
+
+00:00:31.494 --> 00:00:36.126
+Support: something without enough of a base under it falls
+over.
+
+00:00:36.576 --> 00:00:44.376
+Solidity: two solid things cannot occupy the same place, so a
+ball dropped on a table stops at the table.
+
+00:00:44.826 --> 00:00:56.322
+Permanence: something hidden behind an occluder still exists
+and should come out the other side. Continuity: it travels a
+
+00:00:56.772 --> 00:01:10.140
+Infants show these expectations in the first year of life.
+Vision language models largely do not — they underperform on
+
+00:01:11.490 --> 00:01:19.434
+Prior work found that supervised fine-tuning makes models good
+at whatever task you trained on, and does not transfer.
+
+00:01:19.884 --> 00:01:28.356
+The suspected reason is shortcut learning. Instead of the
+rule, the model finds a surface cue that happens to predict
+
+00:01:28.806 --> 00:01:39.678
+Suppose most training towers are three blocks tall. A small
+offset almost always means stable, so the rule 'small offset,
+
+00:01:40.128 --> 00:01:48.936
+Change the tower height and that cue breaks. The same offset
+is now unstable, and the model still says stable.
+
+00:01:49.386 --> 00:01:57.090
+The rule and the shortcut agree on the training data and
+disagree off it. That is the failure the paper is trying to
+
+00:01:58.440 --> 00:02:06.960
+A long tradition in cognitive science holds that people learn
+robust physical concepts by acting on the world, not by
+
+00:02:07.410 --> 00:02:16.674
+Children experiment. They stack things and knock them over,
+and learn most from trying and failing to predict what their
+
+00:02:17.124 --> 00:02:24.108
+Supervised fine-tuning is the passive case: the model is shown
+correct answers it did not produce.
+
+00:02:24.558 --> 00:02:31.470
+Reinforcement learning is the active case: the model acts, and
+the environment tells it what happened.
+
+00:02:31.920 --> 00:02:43.728
+So the hypothesis is direct. Train a VLM by interaction and it
+should acquire generalisable physical intuitions in a way that
+
+00:02:45.078 --> 00:02:58.038
+The setup is deliberately minimal. A tower of two to four
+coloured cubes, rendered at 256 by 256 from a fixed camera in
+
+00:02:58.488 --> 00:03:07.224
+The camera angle and the block sizes never change, so the
+model can in principle learn a stable mapping from pixels to
+
+00:03:07.674 --> 00:03:14.250
+Every block is perfectly stacked except one, which is
+displaced left or right.
+
+00:03:14.700 --> 00:03:24.012
+That single offset is the whole task variable. It determines
+whether the tower is stable, and it determines the correct
+
+00:03:24.462 --> 00:03:31.902
+Two datasets: one where the displaced block sits on top of the
+tower, and one where it sits on the floor beside it.
+
+00:03:33.252 --> 00:03:36.996
+From those two datasets they build four tasks.
+
+00:03:37.446 --> 00:03:43.278
+Binary stability asks a yes-or-no question: is this tower
+stable?
+
+00:03:43.728 --> 00:03:49.920
+X-only asks for a single integer — how far to move the block
+to make the tower more stable.
+
+00:03:50.370 --> 00:03:56.082
+X-y adds a second integer, moving the block sideways and up
+onto the tower.
+
+00:03:56.532 --> 00:04:16.140
+The design is the point. These tasks share visual statistics,
+share the same physics engine, and in some cases require
+
+00:04:16.590 --> 00:04:22.182
+If a model learns the physics rather than the task, transfer
+between these should be easy.
+
+00:04:23.532 --> 00:04:29.316
+The reward is shaped, because a single scalar has to teach a
+continuous action.
+
+00:04:29.766 --> 00:04:36.798
+Answers that cannot be parsed get minus five. Answers that put
+the block below the floor get minus four.
+
+00:04:37.248 --> 00:04:44.904
+For parseable answers, the reward is a Gaussian in the
+distance from the optimal position — closer is better.
+
+00:04:45.354 --> 00:04:59.970
+But the height of that Gaussian depends on the outcome. If the
+resulting tower is unstable, the peak is small and the whole
+
+00:05:00.420 --> 00:05:08.580
+So the reward encodes both 'how close were you' and 'did it
+actually work', and the step between them is where the physics
+
+00:05:09.930 --> 00:05:16.386
+Interaction here is one-step reinforcement learning with
+Group-Relative Policy Optimization.
+
+00:05:16.836 --> 00:05:25.140
+For each image and prompt, the model generates sixteen
+completions. Each gets a reward from that shaped function.
+
+00:05:25.590 --> 00:05:37.182
+The advantage is the reward minus the group mean, divided by
+the group standard deviation. Above-average completions get
+
+00:05:37.632 --> 00:05:45.744
+That is what makes it group-relative: there is no learned
+value network, because the other fifteen samples serve as the
+
+00:05:46.194 --> 00:06:02.946
+The comparison arm is supervised fine-tuning on optimal
+actions — the offline analogue. Both use identical LoRA
+
+00:06:04.296 --> 00:06:11.784
+The first hypothesis was that interaction would beat
+supervision on held-out instances of the trained task.
+
+00:06:12.234 --> 00:06:26.418
+Both methods hit ceiling. Binary stability: 0.94 for GRPO,
+0.97 for SFT. X-only: both reach 20.00, the maximum.
+
+00:06:26.868 --> 00:06:36.324
+On the hardest task, x-y side block, SFT is actually ahead —
+19.86 against 17.31.
+
+00:06:36.774 --> 00:06:44.214
+So there is no within-task advantage from interaction. If
+anything the supervised model is marginally better.
+
+00:06:44.664 --> 00:06:51.144
+This is important context for what follows: both models
+genuinely learned to do the thing.
+
+00:06:52.494 --> 00:06:59.502
+The second hypothesis was that interaction would generalise
+better. This matrix is the answer.
+
+00:06:59.952 --> 00:07:05.688
+The diagonal is near ceiling — every model does the task it
+was trained on.
+
+00:07:06.138 --> 00:07:19.098
+Off the diagonal, almost everything collapses to the baseline
+or below. Negative numbers mean the model is emitting answers
+
+00:07:19.548 --> 00:07:38.100
+There is a little structure. The model trained on x-y side
+block gets 5.4 on x-only side block, which is unsurprising
+
+00:07:38.550 --> 00:07:50.622
+But x-only top block to x-only side block — the same task, the
+same action space, just a larger displacement — gives 0.04.
+
+00:07:51.072 --> 00:07:58.128
+And the same matrix computed for the supervised models looks
+the same. Interaction bought nothing.
+
+00:07:59.478 --> 00:08:05.814
+They also test on a hundred photographs of real wooden block
+towers from an independent dataset.
+
+00:08:06.264 --> 00:08:14.352
+The model trained on binary stability transfers a little:
+sixty percent, against a chance baseline of fifty.
+
+00:08:14.802 --> 00:08:27.642
+Models trained on the other three tasks are at or below chance
+— the x-y model reaches thirty-one percent, which is worse
+
+00:08:28.092 --> 00:08:31.236
+Every model is below the human average.
+
+00:08:31.686 --> 00:08:40.662
+So the small amount of sim-to-real transfer that exists comes
+from having trained on the same task, not from having learned
+
+00:08:42.012 --> 00:08:50.172
+This is the most interesting analysis in the paper, and it
+separates two things that failure usually confuses.
+
+00:08:50.622 --> 00:09:00.270
+The distinction is competence versus performance. Maybe the
+model knows the answer and simply cannot produce it in the
+
+00:09:00.720 --> 00:09:09.864
+So they train linear probes on the hidden activations at each
+layer, and ask whether tower stability and the block offset
+
+00:09:10.314 --> 00:09:24.738
+Both are, at high accuracy, from the earliest layers onward —
+and crucially, in the base model, before any fine-tuning.
+
+00:09:25.188 --> 00:09:32.412
+So the representation is there and the behaviour is not. The
+models have the information and do not recruit it.
+
+00:09:32.862 --> 00:09:45.870
+The authors are candid that stability may be decodable through
+a pixel-level shortcut — a few pixels along the centre line of
+
+00:09:47.220 --> 00:09:59.460
+The obvious objection is that this is not really interaction.
+One-step RL means the model never sees the consequence of its
+
+00:09:59.910 --> 00:10:11.718
+So they built a triplet version: the model sees a frame, is
+told an action was taken, sees the result, another action, a
+
+00:10:12.168 --> 00:10:14.760
+The model learns that version fine.
+
+00:10:15.210 --> 00:10:24.474
+But it does not generalise to the single-image version of the
+same task — and the single-image model does not generalise to
+
+00:10:24.924 --> 00:10:34.884
+Same visual statistics, same reward function, same physics.
+Still no transfer. Seeing the consequence of an action did not
+
+00:10:36.234 --> 00:10:43.530
+The ablations are extensive, and this is what makes the
+negative result credible rather than a single failed run.
+
+00:10:43.980 --> 00:10:52.572
+A different model family: generalisation is even worse. The
+32-billion parameter model shows none at all.
+
+00:10:53.022 --> 00:10:59.430
+A different RL algorithm, GSPO with sequence-level
+optimisation: same pattern.
+
+00:10:59.880 --> 00:11:12.624
+Longer training, up to forty-eight thousand steps: past ten
+thousand the model overfits harder to the exact reward
+
+00:11:13.074 --> 00:11:29.898
+And one genuine positive. Trained on two tasks in sequence,
+the GRPO model retains both, while the supervised model
+
+00:11:31.248 --> 00:11:42.120
+To summarise: both hypotheses failed. Interaction gave no
+within-task advantage and no generalisation advantage over
+
+00:11:42.570 --> 00:11:53.658
+The probing analysis says the models represent the relevant
+physical quantities and simply do not use them, which points
+
+00:11:54.108 --> 00:11:59.892
+Three caveats, and they matter more than usual because this is
+a negative result.
+
+00:12:00.342 --> 00:12:13.134
+Interaction here means one-step reinforcement learning with a
+scalar reward. That is a long way from a child manipulating
+
+00:12:13.584 --> 00:12:19.224
+The models are four-bit quantised with LoRA adapters, not
+fully fine-tuned.
+
+00:12:19.674 --> 00:12:24.546
+And the environment has essentially one degree of freedom by
+design.
+
+00:12:24.996 --> 00:12:43.668
+So the claim supported is narrow: this operationalisation of
+interaction, at this scale, does not confer generalisation.
+

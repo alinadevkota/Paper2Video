@@ -1,0 +1,566 @@
+WEBVTT
+
+00:00:00.450 --> 00:00:08.466
+This covers two lectures from 10-799: denoising diffusion
+models, and score-based models.
+
+00:00:08.916 --> 00:00:18.948
+They are presented separately, but the second lecture ends by
+showing they are the same thing viewed from two directions —
+
+00:00:20.298 --> 00:00:27.426
+Generative modelling means learning a distribution p-theta of
+x from data, so that two things work.
+
+00:00:27.876 --> 00:00:36.588
+Sampling: draw a new point and it should look real. Density
+estimation: given a point, assign it a sensible probability.
+
+00:00:37.038 --> 00:00:48.942
+The families split into likelihood-based — autoregressive
+models, VAEs, normalizing flows, energy-based models — and
+
+00:00:49.392 --> 00:01:00.792
+The recurring difficulty is the same for all of them: sampling
+directly from a complicated p of x is hard, while sampling
+
+00:01:01.242 --> 00:01:08.346
+So every method is, in some sense, a scheme for turning easy
+samples into hard ones.
+
+00:01:09.696 --> 00:01:19.464
+Autoregressive models generate one element at a time. Fine for
+text; for a 4K image that is over eight million forward
+
+00:01:19.914 --> 00:01:31.050
+VAEs are famously blurry. If the encoder maps different inputs
+into the same region of latent space, the decoder learns to
+
+00:01:31.500 --> 00:01:41.124
+GANs are unstable and suffer mode collapse — the generator
+finds one thing that fools the discriminator and stops
+
+00:01:41.574 --> 00:01:48.726
+Normalizing flows need every layer to be invertible, which
+constrains the architecture badly.
+
+00:01:49.176 --> 00:01:53.088
+And energy-based models have an intractable partition
+function.
+
+00:01:53.538 --> 00:02:01.242
+So: is there a way to sample all at once, train stably, and
+avoid the partition function?
+
+00:02:02.592 --> 00:02:06.672
+The diffusion idea is almost embarrassingly simple.
+
+00:02:07.122 --> 00:02:20.682
+Define a forward process that adds a small amount of Gaussian
+noise at each step. Run it long enough and any image becomes
+
+00:02:21.132 --> 00:02:30.324
+Then learn to reverse it. If you can undo one small noising
+step, you can chain those reversals from pure noise back to a
+
+00:02:30.774 --> 00:02:39.918
+The forward process is a Markov chain: each step scales the
+previous image slightly and adds noise with variance beta-t.
+
+00:02:40.368 --> 00:02:48.480
+The reverse process is Gaussian too, with a mean and variance
+the network predicts. That is the entire model.
+
+00:02:49.830 --> 00:02:54.054
+Here is the property that makes diffusion trainable at all.
+
+00:02:54.504 --> 00:03:07.992
+Composing Gaussians gives a Gaussian, so the t-step marginal
+has a closed form: x-t equals root alpha-bar-t times x-zero,
+
+00:03:08.442 --> 00:03:12.330
+Alpha-bar-t is just the running product of the alphas.
+
+00:03:12.780 --> 00:03:22.788
+So to train at timestep 500, you do not simulate 500 noising
+steps. You draw one epsilon and compute x-t directly.
+
+00:03:23.238 --> 00:03:27.870
+That is why training is cheap even though sampling is
+sequential.
+
+00:03:29.220 --> 00:03:35.868
+The reverse process is Gaussian too, with a mean and
+covariance the network predicts.
+
+00:03:36.318 --> 00:03:42.294
+First simplification: fix the variance. Now only the mean is
+learned.
+
+00:03:42.744 --> 00:03:50.328
+Second: rewrite that mean in terms of the noise, using the
+same reparameterisation as before.
+
+00:03:50.778 --> 00:03:59.466
+The training target collapses to the squared error between the
+true noise and the predicted noise — the line marked 'easier
+
+00:03:59.916 --> 00:04:06.732
+And sampling becomes: predict the noise, subtract a scaled
+version of it, add a little back.
+
+00:04:08.082 --> 00:04:15.450
+We want to maximise the log-likelihood of the data, but it
+involves an integral over all the intermediate states.
+
+00:04:15.900 --> 00:04:29.076
+The trick is the one from the VAE lecture: multiply and divide
+by the forward process, recognise an expectation, and apply
+
+00:04:29.526 --> 00:04:33.942
+Expand the bound and it splits into three kinds of term.
+
+00:04:34.392 --> 00:04:44.016
+A prior matching term, which is constant here because both
+ends of the chain are fixed Gaussians. A reconstruction term
+
+00:04:44.466 --> 00:04:54.306
+And in the middle, a KL divergence at every timestep between
+the true reverse posterior and the model's. That is the part
+
+00:04:55.656 --> 00:05:03.600
+That objective is correct and unpleasant to work with. DDPM
+makes three simplifications.
+
+00:05:04.050 --> 00:05:10.722
+First, fix the forward process — do not learn the betas. That
+makes the prior term constant.
+
+00:05:11.172 --> 00:05:16.452
+Second, fix the variance of the reverse process, and only
+learn the mean.
+
+00:05:16.902 --> 00:05:32.574
+Third, and this is the clever one: apply the
+reparameterisation trick again. Because x-t is a known
+
+00:05:33.024 --> 00:05:41.904
+So the whole objective becomes: predict epsilon, and take the
+squared error against the epsilon you actually used. One line.
+
+00:05:43.254 --> 00:05:46.854
+The algorithms fit on one slide each.
+
+00:05:47.304 --> 00:06:01.440
+To train: sample a real image, sample a random timestep,
+sample a noise vector, form x-t in closed form, and take a
+
+00:06:01.890 --> 00:06:12.450
+Notice what is absent — no chain simulation, no backprop
+through T steps. Each gradient step touches exactly one
+
+00:06:12.900 --> 00:06:25.788
+To sample: start from pure Gaussian noise, predict the noise,
+subtract a scaled version of it, add a little fresh noise for
+
+00:06:26.238 --> 00:06:37.398
+The asymmetry matters: training is parallel over timesteps,
+and only sampling is sequential. That is the opposite of an
+
+00:06:38.748 --> 00:06:42.036
+Trained that way, on faces, this is what comes out.
+
+00:06:42.486 --> 00:06:53.742
+In 2020 this was the result that made the field pay attention
+— a likelihood-based model matching GAN sample quality without
+
+00:06:55.092 --> 00:07:02.580
+Before moving on, it is worth putting diffusion next to the
+VAE, because the derivation was suspiciously similar.
+
+00:07:03.030 --> 00:07:10.422
+A VAE has a learned encoder mapping data to a compressed
+latent, and a learned decoder mapping it back.
+
+00:07:10.872 --> 00:07:18.840
+It is trained by maximising a lower bound on the likelihood —
+the same Jensen's-inequality move we just used.
+
+00:07:19.290 --> 00:07:23.010
+Hold that picture and look at what diffusion actually is.
+
+00:07:24.360 --> 00:07:27.456
+It is worth seeing the structural relationship.
+
+00:07:27.906 --> 00:07:34.842
+A diffusion model is a VAE whose encoder is not learned — it
+is the fixed noising process.
+
+00:07:35.292 --> 00:07:44.004
+The latent is the same dimensionality as the data, rather than
+a compressed bottleneck, and there are T of them rather than
+
+00:07:44.454 --> 00:07:47.334
+The decoder is the learned denoiser.
+
+00:07:47.784 --> 00:07:56.280
+That is why the derivation looked so familiar: it is a
+hierarchical VAE with a particularly convenient choice of
+
+00:07:57.630 --> 00:08:05.934
+The network has to map a noisy image to a noise prediction of
+exactly the same shape, which points naturally at a U-Net.
+
+00:08:06.384 --> 00:08:16.896
+Downsampling builds coarse features, upsampling rebuilds fine
+ones, and skip connections carry high-resolution detail across
+
+00:08:17.346 --> 00:08:26.538
+Convolution is a good inductive bias for images, and the
+architecture makes matching input and output dimensions
+
+00:08:26.988 --> 00:08:36.516
+Alternatives exist now — transformers in particular — but
+U-Net dominated diffusion architectures for the first several
+
+00:08:37.866 --> 00:08:43.770
+That is the diffusion story. The second lecture starts
+somewhere apparently unrelated.
+
+00:08:44.220 --> 00:08:48.540
+It asks: what if we stop trying to compute the likelihood at
+all?
+
+00:08:49.890 --> 00:08:56.154
+Every likelihood-based method struggles with the same object:
+the normalising constant.
+
+00:08:56.604 --> 00:09:05.940
+But ask what you actually need. If the goal is only to sample,
+you could do gradient ascent in data space — walk uphill in
+
+00:09:06.390 --> 00:09:14.910
+For that you do not need p of x. You need the gradient of log
+p of x with respect to x. That is called the score function.
+
+00:09:15.360 --> 00:09:31.464
+And here is the payoff: the log-density is log of unnormalised
+density minus log Z, and log Z does not depend on x. So its
+
+00:09:31.914 --> 00:09:44.226
+No intractable normaliser, no adversarial training, no
+invertibility constraint, and no chain rule over dimensions —
+
+00:09:45.576 --> 00:09:50.304
+Concretely, the score is a vector field over the data space.
+
+00:09:50.754 --> 00:10:00.450
+At every point it gives the direction of steepest increase in
+log-density, with magnitude proportional to how steep that
+
+00:10:00.900 --> 00:10:07.692
+Near a mode, the arrows point inward and shrink. Far from the
+data, they point back toward it.
+
+00:10:08.142 --> 00:10:18.078
+A network that outputs a vector for each input can represent
+this directly — and unlike a density, it does not need to
+
+00:10:19.428 --> 00:10:24.204
+So the pipeline has three stages and no likelihood anywhere.
+
+00:10:24.654 --> 00:10:29.118
+From data samples, estimate the score field by score matching.
+
+00:10:29.568 --> 00:10:34.848
+Then run Langevin dynamics on that field to produce new
+samples.
+
+00:10:35.298 --> 00:10:43.602
+That is the entire method — and notice there is no encoder, no
+discriminator, and no normalising constant.
+
+00:10:44.952 --> 00:10:52.632
+The natural objective is the Fisher divergence: the expected
+squared difference between the true score and the model's.
+
+00:10:53.082 --> 00:10:57.162
+But we do not know the true score. That is what we are trying
+to learn.
+
+00:10:57.612 --> 00:11:12.900
+Expand the square. The first term is constant in theta. The
+cross term contains the true score, and applying integration
+
+00:11:13.350 --> 00:11:21.054
+So the ground-truth score disappears entirely. That is
+Hyvärinen's score matching, and it is elegant.
+
+00:11:21.504 --> 00:11:31.104
+It is also impractical. The trace of a Jacobian costs one
+backward pass per input dimension. For images that is
+
+00:11:32.454 --> 00:11:35.334
+The fix is to change the target slightly.
+
+00:11:35.784 --> 00:11:42.432
+Instead of the score of the data distribution, learn the score
+of the data convolved with a known Gaussian.
+
+00:11:42.882 --> 00:11:55.554
+Because you chose that noise, its conditional score has a
+closed form: it is x minus x-tilde, over sigma squared — a
+
+00:11:56.004 --> 00:12:02.652
+No Jacobian, no ground truth needed. The model just learns to
+point back toward the clean data.
+
+00:12:03.102 --> 00:12:14.334
+And if that sounds familiar, it should. Predicting the
+direction back to the clean sample is, up to a scale factor,
+
+00:12:15.684 --> 00:12:20.700
+With a trained score model, sampling is gradient ascent in
+data space.
+
+00:12:21.150 --> 00:12:30.774
+Start from something easy — a Gaussian. Then take a small step
+along the score, and add a bit of fresh noise scaled by root
+
+00:12:31.224 --> 00:12:40.968
+The noise term is essential. Without it you would climb to the
+nearest mode and stop, giving one point rather than a sample
+
+00:12:41.418 --> 00:12:51.930
+With it, the chain explores, and under mild conditions
+converges to the true distribution as the step size shrinks
+
+00:12:52.380 --> 00:12:57.252
+That is Langevin dynamics, and it is the whole sampler.
+
+00:12:58.602 --> 00:13:03.834
+Run that naively and the samples are bad. There are three
+reasons.
+
+00:13:04.284 --> 00:13:23.100
+First, the manifold hypothesis. Real data lies on a low-
+dimensional manifold inside a high-dimensional space. Off that
+
+00:13:23.550 --> 00:13:34.542
+Second, the score estimate is inaccurate in low-density
+regions — because you fit it by expectation over the data, and
+
+00:13:34.992 --> 00:13:48.288
+And that is precisely where Langevin has to start. Your
+initial Gaussian sample is almost certainly in a low-density
+
+00:13:48.738 --> 00:13:59.634
+Third, even in high-density regions, the gradient cannot
+always distinguish high density from higher density, so the
+
+00:14:00.984 --> 00:14:06.120
+There is a third failure, and it survives even where the data
+is dense.
+
+00:14:06.570 --> 00:14:16.122
+On the left, samples drawn i.i.d. from a two-mode
+distribution. On the right, samples from Langevin dynamics on
+
+00:14:16.572 --> 00:14:20.004
+Both find both modes — but the proportions are wrong.
+
+00:14:20.454 --> 00:14:28.254
+The score is a gradient, and a gradient tells you which way is
+up, not how much total mass sits under each peak.
+
+00:14:29.604 --> 00:14:34.452
+All three problems have the same root: parts of the space have
+no data.
+
+00:14:34.902 --> 00:14:48.390
+So add Gaussian noise to the data. It spreads mass everywhere,
+lifting the distribution off the manifold, filling the low-
+
+00:14:48.840 --> 00:14:54.192
+But the amount matters, and the two failure modes pull in
+opposite directions.
+
+00:14:54.642 --> 00:15:03.522
+Too little noise and the gaps remain — you have not fixed
+anything. Too much and you have destroyed the distribution you
+
+00:15:03.972 --> 00:15:09.972
+The resolution is not to pick a value. It is to use many noise
+levels at once.
+
+00:15:11.322 --> 00:15:16.986
+Adding noise addresses all three at once, and this figure is
+the reason.
+
+00:15:17.436 --> 00:15:23.724
+The perturbed density has support everywhere, so there is no
+manifold to fall off.
+
+00:15:24.174 --> 00:15:29.886
+The perturbed scores are well defined across the whole space,
+not just near the data.
+
+00:15:30.336 --> 00:15:38.544
+And the estimated scores now match them — the word 'Accurate'
+covers the whole panel, where before most of it read
+
+00:15:39.894 --> 00:15:45.558
+The resolution is not to pick one sigma but to use a whole
+sequence of them.
+
+00:15:46.008 --> 00:15:53.376
+Start at a large noise level, where the density is smooth and
+the score is reliable everywhere.
+
+00:15:53.826 --> 00:15:58.578
+Then step down, each time starting from where the previous
+level finished.
+
+00:15:59.028 --> 00:16:07.428
+By the last level the noise is negligible and you are sampling
+from something very close to the data distribution.
+
+00:16:08.778 --> 00:16:11.226
+Visually, this is what annealing does.
+
+00:16:11.676 --> 00:16:17.868
+At high noise the samples are shapeless but the chain moves
+freely across the whole space.
+
+00:16:18.318 --> 00:16:23.694
+As the noise drops, structure appears and the chain settles
+into a mode.
+
+00:16:24.144 --> 00:16:31.008
+The large-noise phase solves the initialisation problem; the
+small-noise phase supplies the detail.
+
+00:16:32.358 --> 00:16:37.326
+Put the two side by side and the resemblance is not a
+coincidence.
+
+00:16:37.776 --> 00:16:44.544
+Write both as x-t equals lambda-t times x-zero, plus sigma-t
+times epsilon.
+
+00:16:44.994 --> 00:16:55.602
+For NCSN, lambda is one and sigma grows — the variance
+explodes as noise is added, and the signal is never
+
+00:16:56.052 --> 00:17:05.484
+For DDPM, lambda is root alpha-t and sigma is root one-minus-
+alpha-t, so the total variance is preserved.
+
+00:17:05.934 --> 00:17:17.070
+That is the only structural difference. And the two networks
+are related by a constant: the optimal score equals minus the
+
+00:17:17.520 --> 00:17:25.608
+DDPM predicts the noise; NCSN predicts the score. They are the
+same function, differently scaled.
+
+00:17:26.958 --> 00:17:30.822
+Laid out side by side, the correspondence is exact.
+
+00:17:31.272 --> 00:17:39.696
+Same corruption, written with different lambda and sigma. Same
+loss, up to which quantity the network outputs.
+
+00:17:40.146 --> 00:17:49.818
+The only genuine difference is the sampler — ancestral
+sampling for DDPM, annealed Langevin for NCSN.
+
+00:17:50.268 --> 00:17:53.532
+And even that is a choice, not a consequence.
+
+00:17:54.882 --> 00:18:01.986
+Both DDPM and NCSN use a finite ladder of noise levels — a few
+hundred at most.
+
+00:18:02.436 --> 00:18:07.284
+The obvious question is what happens as that number goes to
+infinity.
+
+00:18:07.734 --> 00:18:15.054
+The ladder becomes a continuum, and the discrete chain becomes
+a continuous-time stochastic process.
+
+00:18:16.404 --> 00:18:24.516
+Now push it. Both methods use a finite number of noise levels.
+What happens if that number goes to infinity?
+
+00:18:24.966 --> 00:18:34.974
+The discrete chain becomes a continuous-time stochastic
+process, described by a stochastic differential equation with
+
+00:18:35.424 --> 00:18:44.280
+Both DDPM and NCSN fall out as special cases of the same
+equation, differing only in what f and g are.
+
+00:18:44.730 --> 00:18:58.890
+DDPM has drift minus one-half beta-t times x, which pulls
+samples toward the origin — that is what preserves variance.
+
+00:18:59.340 --> 00:19:05.580
+Hence the names: variance-preserving SDE and variance-
+exploding SDE.
+
+00:19:06.930 --> 00:19:13.266
+The last piece is a result from 1982, well before diffusion
+models existed.
+
+00:19:13.716 --> 00:19:28.596
+Anderson showed that any such SDE has a reverse-time
+counterpart, and wrote it down. The reverse equation is the
+
+00:19:29.046 --> 00:19:36.582
+Look at what that means. The reverse process is fully
+determined except for one unknown — the score.
+
+00:19:37.032 --> 00:19:44.376
+Learn the score by score matching, plug it in, and you can
+generate by running any numerical solver backwards.
+
+00:19:44.826 --> 00:20:03.450
+That reframes every sampler as a solver choice. DDPM ancestral
+sampling, DDIM, Euler-Maruyama, Heun, higher-order methods —
+
+00:20:04.800 --> 00:20:06.480
+To summarise the pair.
+
+00:20:06.930 --> 00:20:17.466
+A diffusion model is a hierarchical VAE whose encoder you
+designed rather than learned, and the closed-form forward
+
+00:20:17.916 --> 00:20:26.388
+Score-based models come at it from the other side: give up on
+the density, learn its gradient, and the partition function
+
+00:20:26.838 --> 00:20:46.374
+And the two are the same model. The optimal score is the
+optimal noise prediction divided by minus sigma-t. One
+
+00:20:46.824 --> 00:20:48.480
+Four things left open.
+
+00:20:48.930 --> 00:20:59.658
+Sampling is still sequential and slow. The SDE view is what
+later enables fast solvers and distillation, but that comes in
+
+00:21:00.108 --> 00:21:07.908
+The reverse-time SDE assumes the exact score; you have an
+estimate, and that error is not analysed here.
+
+00:21:08.358 --> 00:21:17.742
+The ELBO derivation needs the reverse conditionals to be
+Gaussian, which only holds for small steps — which is why T is
+
+00:21:18.192 --> 00:21:24.648
+And the noise schedule is treated as given, even though it
+matters a great deal in practice.
+

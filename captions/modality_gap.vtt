@@ -1,0 +1,349 @@
+WEBVTT
+
+00:00:00.450 --> 00:00:07.842
+Respecting modality gap in post-hoc out-of-distribution
+detection with pre-trained vision language models.
+
+00:00:08.292 --> 00:00:14.700
+From UTS and the University of Queensland, published at ICML
+2026.
+
+00:00:16.050 --> 00:00:26.946
+A classifier knows K in-distribution classes. At test time it
+also meets classes from outside that set, and it should flag
+
+00:00:27.396 --> 00:00:34.980
+Post-hoc means the model is frozen. You may compute a score at
+test time, but you may not retrain anything.
+
+00:00:35.430 --> 00:00:42.942
+Zero-shot means there are no in-distribution training images
+either. You have the class names and nothing else.
+
+00:00:43.392 --> 00:00:55.848
+Those two constraints together create the problem this paper
+is about. With no images to average, a class prototype has to
+
+00:00:57.198 --> 00:01:11.646
+MCM was the first CLIP-based detector. It embeds the image as
+z, embeds every ID class name as r-sub-y, and scores the image
+
+00:01:12.096 --> 00:01:18.360
+The reading is: if this image looks like none of my class
+names, it is probably out of distribution.
+
+00:01:18.810 --> 00:01:28.314
+Notice what r-sub-y is doing here. It is standing in for the
+class prototype. That substitution is the assumption the paper
+
+00:01:29.664 --> 00:01:39.216
+NegLabel adds ten thousand negative class names mined from
+WordNet, chosen to be semantically dissimilar to every ID
+
+00:01:39.666 --> 00:01:47.394
+The score becomes the fraction of probability mass that stays
+on the ID side rather than leaking onto the negatives.
+
+00:01:47.844 --> 00:01:57.708
+This is stronger than MCM, but the prototypes are still text
+embeddings. Both the ID anchors and the negative anchors are
+
+00:01:59.058 --> 00:02:08.658
+So the paper asks a question nobody had answered directly. Are
+text embeddings actually good stand-ins for visual class
+
+00:02:09.108 --> 00:02:14.892
+To answer it you need to know what the right prototype would
+have been. That is what Theorem one supplies.
+
+00:02:16.242 --> 00:02:25.170
+Imagine for a moment you did have labelled images. Minimise
+the ordinary prototype cross-entropy over unit-norm
+
+00:02:25.620 --> 00:02:34.956
+Because the prototypes are constrained to the sphere, this is
+a constrained optimisation, and KKT stationarity gives a
+
+00:02:35.406 --> 00:02:50.622
+Read it as a tug of war. Each image of your own class pulls
+the prototype toward it, weighted by one minus the current
+
+00:02:51.072 --> 00:02:58.608
+The crucial part is not the weights. It is that every single
+term is one of the image features z-sub-i.
+
+00:02:59.958 --> 00:03:03.846
+That observation is the hinge of the whole paper.
+
+00:03:04.296 --> 00:03:13.728
+The image features span a subspace S, and Theorem one forces
+the optimal prototype w-star to lie inside it.
+
+00:03:14.178 --> 00:03:21.714
+A text embedding is under no such obligation. CLIP gives a
+shared space, which is not a shared subspace.
+
+00:03:22.164 --> 00:03:28.860
+Project the text prototype onto S and only that shadow can
+ever align with w-star.
+
+00:03:29.310 --> 00:03:34.014
+Whatever sticks out is error you cannot remove by rewording
+the prompt.
+
+00:03:35.364 --> 00:03:42.036
+Decompose the text prototype into the part lying inside S and
+the part orthogonal to it.
+
+00:03:42.486 --> 00:03:53.286
+Since w-star is in S, only the in-span component can ever
+align with it. The orthogonal component contributes error no
+
+00:03:53.736 --> 00:04:03.504
+Two lines of Pythagoras and Cauchy-Schwarz turn that into this
+lower bound on the distance between the text prototypes and
+
+00:04:03.954 --> 00:04:11.970
+The bound vanishes only if the text prototype lies entirely
+inside S. In practice it does not.
+
+00:04:13.320 --> 00:04:17.664
+This is the claim that separates the paper from prompt-
+engineering work.
+
+00:04:18.114 --> 00:04:30.090
+Rewriting the prompt moves r-sub-y around, but it does not put
+it inside the span of the image features. Mining better
+
+00:04:31.440 --> 00:04:34.680
+Earlier work already measured this empirically.
+
+00:04:35.130 --> 00:04:41.322
+CLIP's text and image embeddings sit in separated regions of
+the same sphere.
+
+00:04:41.772 --> 00:04:48.372
+This paper's contribution is turning that observation into a
+lower bound on the prototype error.
+
+00:04:49.722 --> 00:04:56.994
+The fix follows directly from the diagnosis. If the prototype
+should live in image space, put it there.
+
+00:04:57.444 --> 00:05:07.740
+Initialise each prototype at its text embedding, then move it
+toward where the images actually are, using the unlabelled
+
+00:05:08.190 --> 00:05:21.150
+This stays within the post-hoc constraint. The image encoder
+and the text encoder are frozen throughout. The only things
+
+00:05:22.500 --> 00:05:29.988
+Theorem one needs labels, and at test time there are none. So
+the hard label is replaced by a soft one.
+
+00:05:30.438 --> 00:05:45.126
+The target P of y-hat given x-i is CLIP's own zero-shot
+prediction over the label set. The paper leans on CLIP's
+
+00:05:45.576 --> 00:05:56.784
+So this is cross-entropy between CLIP's own belief and a
+prototype-based softmax at temperature kappa. The prototypes W
+
+00:05:58.134 --> 00:06:09.654
+Test samples arrive one at a time, so the optimisation is
+online. One gradient step per arriving sample, no epochs, no
+
+00:06:10.104 --> 00:06:20.040
+The step size decays as rho over the square root of the
+iteration index, so early samples move the prototypes a lot
+
+00:06:20.490 --> 00:06:33.834
+The l-two renormalisation at the end is not cosmetic.
+Prototypes must stay on the unit sphere, and renormalising is
+
+00:06:34.284 --> 00:06:37.644
+That detail is what makes the next theorem work.
+
+00:06:38.994 --> 00:06:48.018
+Once you see the renormalisation as a projection, this is
+projected online gradient descent on a convex loss over a
+
+00:06:48.468 --> 00:06:59.988
+The standard argument then applies: non-expansiveness of the
+projection, convexity to turn inner products into regret, and
+
+00:07:00.438 --> 00:07:12.390
+The result is regret of order root N. Sub-linear regret means
+the average loss per sample tends to zero, so the prototypes
+
+00:07:13.740 --> 00:07:18.996
+Without learning, cumulative regret would grow linearly with
+the stream.
+
+00:07:19.446 --> 00:07:24.630
+Root N growth means the average loss per sample tends to zero.
+
+00:07:25.080 --> 00:07:31.272
+So the prototypes genuinely settle rather than wandering with
+whatever arrives next.
+
+00:07:32.622 --> 00:07:44.358
+Now the concrete algorithm. The label space is extended with L
+extra placeholders, which effectively group the unknown OOD
+
+00:07:44.808 --> 00:07:56.136
+The K ID prototypes are initialised from the ID class names,
+and the ten thousand OOD pseudo-prototypes are initialised
+
+00:07:56.586 --> 00:08:03.714
+So at iteration zero this method is exactly NegLabel.
+Everything that follows is the correction.
+
+00:08:04.164 --> 00:08:15.228
+That framing is useful for judging the results later. The
+gains are entirely attributable to moving the prototypes,
+
+00:08:16.578 --> 00:08:26.562
+There is still a chicken-and-egg problem. To update the ID
+prototypes you need to know which samples are ID, and that is
+
+00:08:27.012 --> 00:08:38.052
+The answer is a hard threshold on the off-the-shelf NegLabel
+score. Above beta, treat it as in-distribution. Below one
+
+00:08:38.502 --> 00:08:46.590
+Beta is fixed at zero point nine five for every experiment, so
+only very confident samples are used.
+
+00:08:47.040 --> 00:09:00.480
+Everything between zero point zero five and zero point nine
+five is thrown away. The uncertain middle updates nothing,
+
+00:09:01.830 --> 00:09:05.862
+The two populations are then handled by two separate rules.
+
+00:09:06.312 --> 00:09:15.288
+A confident ID sample updates only the K ID prototypes, using
+the gradient restricted to the ID label set.
+
+00:09:15.738 --> 00:09:25.386
+A confident OOD sample updates only the ten thousand OOD
+pseudo-prototypes, using the gradient over the pseudo-label
+
+00:09:25.836 --> 00:09:39.204
+Note the step sizes carefully. They use separate counters,
+c-plus and c-minus, so each schedule decays with the number of
+
+00:09:39.654 --> 00:09:50.358
+That matters because ID and OOD samples do not arrive at the
+same rate. A shared schedule would make the rarer population
+
+00:09:51.708 --> 00:09:56.052
+Put it together and this is what happens over a test stream.
+
+00:09:56.502 --> 00:10:01.518
+Every prototype starts at its text embedding, marked with a
+cross.
+
+00:10:01.968 --> 00:10:07.608
+Samples arrive and are routed by their NegLabel score against
+the beta threshold.
+
+00:10:08.058 --> 00:10:16.050
+Confident ID samples pull the ID prototypes; confident OOD
+samples pull the pseudo-prototypes.
+
+00:10:16.500 --> 00:10:21.780
+The uncertain middle is discarded, which keeps bad pseudo-
+labels out.
+
+00:10:22.230 --> 00:10:28.590
+Step by step the prototypes leave the text region and settle
+on the real visual clusters.
+
+00:10:29.940 --> 00:10:33.564
+Assembled, the algorithm is nine lines.
+
+00:10:34.014 --> 00:10:47.694
+Initialise the prototypes from text. Then for each arriving
+test sample: update the two counters, update the ID
+
+00:10:48.144 --> 00:10:58.032
+There is no training loop, no second pass and no stored
+dataset. The state is just K plus L vectors and two integers.
+
+00:10:59.382 --> 00:11:08.646
+And the final score has exactly the same shape as NegLabel.
+Mass on the ID prototypes divided by mass over all prototypes.
+
+00:11:09.096 --> 00:11:16.632
+The only change is that w has replaced r. A learned visual
+prototype instead of a text embedding.
+
+00:11:17.082 --> 00:11:31.290
+One subtlety worth noticing: the score for sample i uses the
+prototypes as of step i. Scoring is non-stationary, and a
+
+00:11:32.640 --> 00:11:39.960
+On the standard ImageNet benchmark, MCM sits near forty-four
+percent FPR95.
+
+00:11:40.410 --> 00:11:44.418
+Negative labels bring that to twenty-five point four.
+
+00:11:44.868 --> 00:11:51.900
+AdaNeg, which also adapts at test time but keeps text as its
+anchor, reaches eighteen point nine.
+
+00:11:52.350 --> 00:12:00.774
+Calibrating the prototypes in visual space reaches twelve
+point seven nine, with AUROC of ninety-seven point seven five.
+
+00:12:01.224 --> 00:12:13.848
+The result is averaged over ten runs with a standard deviation
+of about zero point three, so the margin is not noise. It also
+
+00:12:15.198 --> 00:12:27.630
+The ImageNet benchmark is close to saturated, so the more
+informative comparison is OpenOOD near-OOD, where the outliers
+
+00:12:28.080 --> 00:12:32.808
+There the gap widens to more than nine AUROC points over
+AdaNeg.
+
+00:12:33.258 --> 00:12:45.762
+That is the pattern you would predict from the theory. When
+OOD data is far away, a coarse text anchor is good enough.
+
+00:12:47.112 --> 00:12:59.952
+It is also cheaper than the method it displaces. AdaNeg caches
+image features alongside its text prototypes, so it carries
+
+00:13:00.402 --> 00:13:03.738
+That halves the memory and roughly halves the runtime.
+
+00:13:04.188 --> 00:13:16.932
+The gains survive changing the backbone, changing the input
+resolution, shifting the ID distribution to ImageNet-A, R or
+
+00:13:18.282 --> 00:13:29.490
+To summarise: the contribution is really the diagnosis.
+Optimal prototypes lie in the span of the image features, and
+
+00:13:29.940 --> 00:13:40.092
+The method follows from that: initialise from text, then
+correct online using CLIP's own soft predictions, with a
+
+00:13:40.542 --> 00:13:54.798
+Three things to keep in mind, though. It is test-time
+adaptation, so it needs a stream, and the paper's own ablation
+
+00:13:55.248 --> 00:14:04.512
+It depends on NegLabel at every step, not just at
+initialisation, because the routing threshold uses the
+
+00:14:04.962 --> 00:14:13.722
+And near-OOD is still nearly fifty-three percent FPR95. The
+gap is narrowed, not closed.
+

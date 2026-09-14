@@ -1,0 +1,396 @@
+WEBVTT
+
+00:00:00.450 --> 00:00:04.386
+Training agents inside of scalable world models.
+
+00:00:04.836 --> 00:00:12.324
+This is Dreamer 4, from Danijar Hafner, Wilson Yan and Timothy
+Lillicrap at Google DeepMind.
+
+00:00:13.674 --> 00:00:29.154
+A world model learns to predict what happens next given what
+an agent does. Once you have one, you can train a policy
+
+00:00:29.604 --> 00:00:36.156
+The payoff is that the whole loop runs offline. No environment
+interaction at any point.
+
+00:00:36.606 --> 00:00:49.710
+That matters most where interaction is expensive or unsafe. A
+partially trained robot policy in the physical world has to be
+
+00:00:50.160 --> 00:01:00.168
+Dreamer 4 is the first agent to obtain diamonds in Minecraft
+this way — purely from a fixed dataset, with no environment
+
+00:01:01.518 --> 00:01:05.646
+Two families of model exist and neither is sufficient.
+
+00:01:06.096 --> 00:01:18.408
+Dreamer 3 and its relatives are accurate and fast, but their
+architectures cannot fit complex, diverse real-world
+
+00:01:18.858 --> 00:01:34.362
+Controllable video models like Genie 3 scale to diverse video
+with diffusion transformers, and generate beautiful scenes.
+
+00:01:34.812 --> 00:01:47.628
+And they are slow. Many of them need multiple GPUs to simulate
+a single scene in real time, which makes imagination training
+
+00:01:48.978 --> 00:01:53.130
+So the engineering target is unusually specific.
+
+00:01:53.580 --> 00:02:04.212
+Accurate enough to simulate game mechanics, and fast enough
+that a human — or a learning policy — can interact with it in
+
+00:02:05.562 --> 00:02:14.202
+The model has two halves. The first is a tokenizer that
+compresses raw video into continuous representations.
+
+00:02:14.652 --> 00:02:24.612
+It is an encoder-decoder with a bottleneck: the latent tokens
+are read out through a linear projection to a small channel
+
+00:02:25.062 --> 00:02:35.214
+Crucially it is causal in time. That lets it compress
+temporally while still decoding one frame at a time, which is
+
+00:02:35.664 --> 00:02:50.280
+It is trained as a masked autoencoder — patches are dropped
+with a probability sampled uniformly between zero and zero
+
+00:02:50.730 --> 00:02:59.466
+The authors report that this masking improves the spatial
+consistency of the videos the dynamics model later generates.
+
+00:03:00.816 --> 00:03:06.384
+Both halves use the same transformer, and its design is all
+about inference cost.
+
+00:03:06.834 --> 00:03:15.882
+Dense attention over every video token is prohibitive, so
+space and time are factorised into separate attention layers.
+
+00:03:16.332 --> 00:03:26.052
+Then a finding that does most of the work: only a small number
+of temporal layers are needed. Time attention runs once every
+
+00:03:26.502 --> 00:03:35.790
+Grouped-query attention shrinks the KV cache further, which
+matters because inference is bound by memory bandwidth as much
+
+00:03:36.240 --> 00:03:47.256
+Attention is block-causal in time — everything within a
+timestep sees everything else in it, plus the past. That is
+
+00:03:48.606 --> 00:03:53.742
+The dynamics model is a diffusion model, in the flow-matching
+formulation.
+
+00:03:54.192 --> 00:04:06.768
+Take a clean data point and a noise sample, and interpolate
+between them linearly. The mixing coefficient tau is the
+
+00:04:07.218 --> 00:04:13.626
+The network is trained to predict the velocity, the vector
+pointing from noise toward data.
+
+00:04:14.076 --> 00:04:27.324
+At inference you start from noise and integrate that velocity
+field over K steps. Standard diffusion needs 64 steps or more,
+
+00:04:28.674 --> 00:04:37.194
+Shortcut models fix the step count by conditioning the network
+not just on the signal level but on the requested step size.
+
+00:04:37.644 --> 00:04:42.996
+At the finest step size the model is trained with the ordinary
+flow-matching loss.
+
+00:04:43.446 --> 00:04:56.094
+For larger steps it is trained with a bootstrap loss: take two
+half-steps, average their velocities, and use that as the
+
+00:04:56.544 --> 00:05:04.632
+The model therefore learns to predict where a large step
+should land, rather than accumulating discretisation error
+
+00:05:05.082 --> 00:05:15.498
+In practice that turns 64 steps into 2 or 4 — and Dreamer 4
+uses K equals four forward passes per generated frame.
+
+00:05:16.848 --> 00:05:26.856
+The third ingredient is diffusion forcing, which assigns a
+different signal level to every timestep in the sequence
+
+00:05:27.306 --> 00:05:35.538
+That means every timestep serves double duty — it is a
+denoising target, and it is context for the timesteps after
+
+00:05:35.988 --> 00:05:44.940
+It also makes the noise pattern flexible at inference. You can
+hold the history clean or lightly noised while generating the
+
+00:05:45.390 --> 00:05:58.614
+Dreamer 4 uses that: past frames are corrupted to a signal
+level of zero point one, deliberately, so the model becomes
+
+00:05:59.964 --> 00:06:10.644
+Combining shortcut models with diffusion forcing gives what
+they call shortcut forcing. But there is a modification, and
+
+00:06:11.094 --> 00:06:23.334
+Shortcut models normally use v-prediction — the network
+outputs a velocity. That works well when you generate a whole
+
+00:06:23.784 --> 00:06:32.496
+But velocities are high-frequency outputs. Generate a long
+video frame by frame and small errors in them compound.
+
+00:06:32.946 --> 00:06:46.026
+So they reparameterise to x-prediction: the network predicts
+the clean representation directly. The bootstrap term is
+
+00:06:46.476 --> 00:06:59.964
+The ablation makes the case: x-prediction and the x-space loss
+take FVD from 329 down to 151. It is what enables rollouts of
+
+00:07:01.314 --> 00:07:03.594
+One more detail worth a moment.
+
+00:07:04.044 --> 00:07:16.548
+At very low signal levels the flow-matching target degenerates
+— with almost pure noise as input, the best prediction is
+
+00:07:16.998 --> 00:07:24.678
+So they add a ramp weight, linear in the signal level: zero
+point nine tau plus zero point one.
+
+00:07:25.128 --> 00:07:39.336
+That is the entire mechanism. It moves model capacity toward
+the signal levels that actually carry information, and it
+
+00:07:40.686 --> 00:07:46.614
+With the world model in place, the agent is built in three
+phases on the same network.
+
+00:07:47.064 --> 00:07:56.736
+Phase one pretrains the tokenizer on video, then the world
+model on tokenized video and, where available, actions.
+
+00:07:57.186 --> 00:08:07.530
+Phase two inserts task tokens as a new modality and adds
+policy and reward heads, trained by behavioural cloning on the
+
+00:08:07.980 --> 00:08:16.356
+Phase three is imagination training: reinforcement learning on
+rollouts the world model generates itself.
+
+00:08:16.806 --> 00:08:26.022
+Nothing is thrown away between phases, and the video-
+prediction loss keeps running throughout so the model does not
+
+00:08:27.372 --> 00:08:36.708
+Inserting agent tokens into the same transformer creates a
+subtle hazard, and the fix is a single line in the attention
+
+00:08:37.158 --> 00:08:45.510
+The agent tokens attend to themselves and to every other
+modality — images, actions, registers.
+
+00:08:45.960 --> 00:08:49.728
+But no other modality is allowed to attend back to them.
+
+00:08:50.178 --> 00:09:05.154
+Without that, the world model's predictions could be
+influenced by which task was requested, rather than only by
+
+00:09:05.604 --> 00:09:12.180
+The paper calls this causal confusion, and blocking the
+reverse direction is what rules it out.
+
+00:09:13.530 --> 00:09:19.098
+Imagination training then unrolls the transformer against
+itself.
+
+00:09:19.548 --> 00:09:29.292
+Each rollout starts from a context taken from the dataset,
+then the policy head picks actions and the flow head samples
+
+00:09:29.742 --> 00:09:40.998
+The reward head annotates the trajectory, and a value head
+predicts lambda-returns by temporal-difference learning so the
+
+00:09:41.448 --> 00:09:49.464
+Both reward and value use symexp two-hot outputs, which
+handles rewards spanning very different magnitudes.
+
+00:09:49.914 --> 00:10:03.714
+Notably the transformer stays frozen. Only the policy and
+value heads are updated, which keeps the cost down — and
+
+00:10:05.064 --> 00:10:10.152
+The policy is optimised with PMPO, which is deliberately
+blunt.
+
+00:10:10.602 --> 00:10:24.402
+It looks only at the sign of the advantage, not its size.
+States with positive advantage go in one set and get their
+
+00:10:24.852 --> 00:10:37.188
+Averaging the two sets separately, with equal weight, means
+you do not need to normalise returns or advantages — and no
+
+00:10:37.638 --> 00:10:45.294
+A KL term against a frozen copy of the behaviour-cloning
+policy keeps it from drifting into nonsense.
+
+00:10:45.744 --> 00:10:53.664
+All three terms are measured in nats, which the authors say is
+why the balance between them is robust in practice.
+
+00:10:55.014 --> 00:11:06.846
+The evaluation is the Minecraft diamond challenge, offline. A
+human with experience takes about twenty minutes, which is
+
+00:11:07.296 --> 00:11:19.608
+Dreamer 4 clears the early milestones above ninety percent,
+reaches an iron pickaxe twenty-nine percent of the time, and
+
+00:11:20.058 --> 00:11:30.666
+VPT, OpenAI's offline agent, progresses to sticks and
+effectively stops — and Dreamer 4 beats it using a hundred
+
+00:11:31.116 --> 00:11:41.580
+The VLA baseline built on Gemma 3 is stronger, reaching iron
+pickaxes eleven percent of the time, but Dreamer 4 nearly
+
+00:11:42.030 --> 00:11:53.286
+Worth being clear about the headline: zero point seven percent
+is a first, not a solution. The claim is that it happens at
+
+00:11:54.636 --> 00:11:58.452
+Two things separate out cleanly in the ablation.
+
+00:11:58.902 --> 00:12:14.238
+First, behavioural cloning on the world model's
+representations beats cloning on Gemma 3's representations,
+
+00:12:14.688 --> 00:12:22.776
+Second, imagination training on top of that takes the iron
+pickaxe rate from seventeen percent to twenty-nine.
+
+00:12:23.226 --> 00:12:32.946
+And the improvement grows with the difficulty of the milestone
+— which is the pattern you would want, since easy milestones
+
+00:12:33.396 --> 00:12:40.764
+It also reaches each milestone faster, so it is not just more
+reliable but more efficient.
+
+00:12:42.114 --> 00:12:53.970
+The world model is evaluated separately, and the protocol is
+nice: a human player is given a task and a start frame, and
+
+00:12:54.420 --> 00:13:03.924
+Lucid-v1 completes zero of sixteen tasks — generations diverge
+or interactions are simply ignored.
+
+00:13:04.374 --> 00:13:17.526
+The large Oasis model manages five. It fails at building
+because after a few blocks it hallucinates whole structures
+
+00:13:17.976 --> 00:13:29.592
+Dreamer 4 completes fourteen of sixteen, including placing and
+breaking blocks, switching items, fighting monsters, riding
+
+00:13:30.042 --> 00:13:41.034
+It does that with a 9.6-second context — six times longer than
+prior models — while still running at 21 frames per second on
+
+00:13:42.384 --> 00:13:46.488
+This result is the one with the widest implications.
+
+00:13:46.938 --> 00:13:57.570
+They train on all 2541 hours of video but provide actions for
+only a subset, and measure how well the model follows actions
+
+00:13:58.020 --> 00:14:09.420
+With just ten hours of paired actions the model reaches 53
+percent of the PSNR and 75 percent of the SSIM of a model
+
+00:14:09.870 --> 00:14:16.686
+With a hundred hours it reaches 85 percent PSNR and
+essentially full SSIM.
+
+00:14:17.136 --> 00:14:29.760
+So the world model absorbs most of its knowledge from
+unlabelled video, and needs only a small amount of action
+
+00:14:31.110 --> 00:14:38.382
+They also test whether action conditioning transfers to parts
+of the game it never saw actions for.
+
+00:14:38.832 --> 00:14:51.552
+Train with actions only from the Overworld, then evaluate in
+the Nether and End — different textures, different blocks,
+
+00:14:52.002 --> 00:14:55.506
+The action conditioning largely carries over.
+
+00:14:55.956 --> 00:15:11.196
+As far as the authors know this is the first controlled
+evaluation of that, and it is the load-bearing evidence for
+
+00:15:12.546 --> 00:15:16.122
+The ablation is unusually honest about ordering.
+
+00:15:16.572 --> 00:15:29.148
+Start from a diffusion forcing transformer at FVD 306. Simply
+cutting to four sampling steps wrecks it — FVD jumps to 875.
+
+00:15:29.598 --> 00:15:38.934
+Adding the shortcut model recovers it to 329, so the shortcut
+objective is what buys the speed back, not a free lunch.
+
+00:15:39.384 --> 00:15:46.680
+X-prediction with the x-space loss takes it to 151. The ramp
+weight to 102.
+
+00:15:47.130 --> 00:16:07.722
+Then the architecture work — alternating batch lengths,
+temporal layers every fourth, grouped-query attention,
+
+00:16:09.072 --> 00:16:22.440
+To summarise: the enabling idea is shortcut forcing — shortcut
+models combined with diffusion forcing, reparameterised to
+
+00:16:22.890 --> 00:16:35.226
+Speed here is a capability rather than a convenience. Four
+forward passes per frame and factorised attention are what
+
+00:16:35.676 --> 00:16:42.492
+And action labels turn out to be the cheap ingredient, which
+points toward learning simulators from web video.
+
+00:16:42.942 --> 00:16:45.534
+Four things to hold in proportion, though.
+
+00:16:45.984 --> 00:16:54.408
+Zero point seven percent on diamonds is a first, not a solved
+task, and the high success rates are on the early milestones.
+
+00:16:54.858 --> 00:17:11.610
+The world-model comparison is a human attempting sixteen hand-
+picked tasks, judged pass or fail — informative, but a small
+
+00:17:12.060 --> 00:17:22.500
+Real-time on one GPU describes inference. Training used
+between 256 and 1024 TPU-v5p chips.
+
+00:17:22.950 --> 00:17:28.638
+And the robotics results are qualitative rollouts rather than
+a control benchmark.
+
