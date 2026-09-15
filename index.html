@@ -138,6 +138,11 @@ header#top .lede{max-width:64ch}
 /* demo reel */
 .reel{display:grid; gap:2em 1.25em; margin-top:1.75em; grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr))}
 .demo{scroll-margin-top:5em}
+.reel.featured .demo{grid-column:1/-1; display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:0 1.75em; align-items:center}
+.reel.featured .demo .frame{grid-row:1/4}
+.reel.featured .demo h3{margin-top:0; font-size:1.25em}
+.reel.featured .demo .caption{font-size:.9em}
+@media (max-width:760px){.reel.featured .demo{grid-template-columns:minmax(0,1fr)} .reel.featured .demo .frame{grid-row:auto} .reel.featured .demo h3{margin-top:.8em}}
 .demo .frame{transition:box-shadow .15s ease, transform .15s ease, border-color .15s}
 .demo:hover .frame{box-shadow:0 8px 22px rgba(0,0,0,.12); transform:translateY(-2px)}
 :root[data-theme="dark"] .demo:hover .frame{box-shadow:0 8px 22px rgba(0,0,0,.5)}
@@ -271,8 +276,8 @@ footer .caption{font-size:.85em}
   </div>
 
   <ul class="facts">
-    <li><b>9</b>videos here</li>
-    <li><b>2 h 12 m</b>of narrated figures</li>
+    <li><b>10</b>videos here</li>
+    <li><b>2 h 28 m</b>of narrated figures</li>
     <li><b>100</b>figure primitives</li>
     <li><b>181</b>presets</li>
     <li><b>13</b>storyboards</li>
@@ -456,8 +461,10 @@ const TITLE = Object.fromEntries(VIDEOS.map(v => [v.id, v.title]));
 // Videos of my own first- and second-author papers. Same fields as VIDEOS plus `role`.
 // Drop the mp4 in videos/, run make_assets.py, then add an entry here.
 const MINE = [
-  // {id:"my_paper", title:"Paper title", by:"Devkota et al. · Venue 2026", role:"First author",
-  //  dur:"12:00", scenes:16, blurb:"One paragraph on what the video shows."},
+  {id:"fedfound", title:"FedFound: a federated foundation model for GI endoscopy imaging",
+   by:"Devkota et al. · npj Digital Medicine", role:"First author", dur:"16:25", scenes:21,
+   blurb:"Hospitals pretrain one masked autoencoder together without sharing images. Federated pretraining recovers most of what centralised pretraining gives, the advantage grows as data fragments across 10 and 20 nodes, and plain averaging beats momentum and adaptive server rules almost everywhere. One backbone, three clinical tasks."},
+  // Same fields as VIDEOS plus `role`: "First author" or "Second author".
 ];
 
 const card = v => `
@@ -476,9 +483,11 @@ const card = v => `
   </article>`;
 
 document.getElementById("reel").innerHTML = VIDEOS.map(card).join("");
-document.getElementById("mine-reel").innerHTML = MINE.length
+const mine = document.getElementById("mine-reel");
+mine.innerHTML = MINE.length
   ? MINE.map(card).join("")
   : `<p class="empty">Videos for these papers are being rendered and will appear here.</p>`;
+mine.classList.toggle("featured", MINE.length === 1);   // one entry: video beside its description
 
 // Frames on the wall, one per kind of figure: [file stem, seconds into that video]. Made by make_assets.py.
 const WALL = [

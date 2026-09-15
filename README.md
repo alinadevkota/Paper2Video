@@ -38,7 +38,7 @@ empty options, every preset and every scene of every storyboard: 281/281 figures
     src/              the tool: renderer, figure library, storyboard planner, PPTX export
     storyboards/      one storyboard JSON per paper or lecture
     docs/             the pipeline diagram and design notes
-    videos/           the nine rendered videos (mp4, 1080p, embedded subtitle track)
+    videos/           the rendered videos (mp4, 1080p, embedded subtitle track)
     index.html        the project site, served by GitHub Pages from the repo root
     posters/          one frame per video, shown before it plays
     figures/          frames cropped to the drawing, for the site's figure wall
@@ -92,7 +92,7 @@ preview use a server that supports ranges, such as `npx serve .`.
 Push to GitHub, then in the repository settings enable Pages from the `main` branch,
 root folder. `.nojekyll` makes Pages serve the files as they are.
 
-The videos total about 240 MB. Every file is under GitHub's 100 MB per-file limit, so they
+The videos total about 275 MB. Every file is under GitHub's 100 MB per-file limit, so they
 are committed directly. Do not put them in Git LFS: GitHub Pages does not serve LFS objects.
 
 ## License
