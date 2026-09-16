@@ -98,7 +98,7 @@ root folder. `.nojekyll` makes Pages serve the files as they are. `robots.txt` a
 `sitemap.xml` are for search engines; the page also carries JSON-LD structured data for the
 site, the FAQ and every video, generated from the same arrays that build the cards.
 
-The videos total about 300 MB. Every file is under GitHub's 100 MB per-file limit, so they
+The videos total about 320 MB. Every file is under GitHub's 100 MB per-file limit, so they
 are committed directly. Do not put them in Git LFS: GitHub Pages does not serve LFS objects.
 
 ## License

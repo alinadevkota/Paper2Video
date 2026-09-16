@@ -1,0 +1,258 @@
+WEBVTT
+
+00:00:00.450 --> 00:00:07.770
+TE-SSL: time and event-aware self-supervised learning, for
+analysing how Alzheimer's disease progresses.
+
+00:00:08.220 --> 00:00:15.948
+From West Virginia University with Pittsburgh and Aberdeen,
+using data from the Alzheimer's Disease Neuroimaging
+
+00:00:16.398 --> 00:00:27.678
+The idea is small and specific: contrastive pretraining
+already uses class labels when it has them. This paper asks
+
+00:00:29.028 --> 00:00:38.676
+Roughly 6.7 million Americans over sixty-five live with
+Alzheimer's dementia, and MRI-based deep learning has made
+
+00:00:39.126 --> 00:00:50.814
+But detection is arguably the easier question. What changes
+management is knowing which patients who are currently
+
+00:00:51.264 --> 00:00:55.752
+That is a progression question, and it needs a different kind
+of label.
+
+00:00:56.202 --> 00:01:02.370
+Not a class, but a pair: how long until the event, and whether
+the event was actually observed.
+
+00:01:03.720 --> 00:01:08.160
+This is the setup, and the censoring part is what makes it
+awkward.
+
+00:01:08.610 --> 00:01:18.474
+Patient A converts to Alzheimer's dementia at eighteen months.
+The event was observed, so the label is the pair: eighteen,
+
+00:01:18.924 --> 00:01:25.164
+Patient B converts at forty-two. Same kind of label, longer
+time.
+
+00:01:25.614 --> 00:01:37.902
+Patient C leaves the study at thirty-six months without
+converting. We do not know what happened afterwards. That is
+
+00:01:38.352 --> 00:01:45.360
+Patient D finishes the full sixty months event-free. Also
+censored, just at the horizon.
+
+00:01:45.810 --> 00:01:59.298
+The goal is to model the survival function: the probability
+that the event has not occurred by time t. And censored
+
+00:02:00.648 --> 00:02:04.128
+Here is the whole framework as the authors draw it.
+
+00:02:04.578 --> 00:02:10.098
+Images are augmented into multiple views and encoded into
+representations z.
+
+00:02:10.548 --> 00:02:15.564
+The contrastive objective then pulls some pairs together and
+pushes others apart.
+
+00:02:16.014 --> 00:02:24.558
+What TE-SSL adds is the delta terms: the time difference
+between each pair of samples, which modulates how strongly
+
+00:02:25.008 --> 00:02:30.936
+Everything else — the encoder, the augmentations, the
+projection head — is standard.
+
+00:02:32.286 --> 00:02:37.782
+It is worth being precise about what changes, because the
+paper builds it in three steps.
+
+00:02:38.232 --> 00:02:51.840
+Plain self-supervised learning has no labels at all. Only an
+image and its own augmentation are a positive pair. Every
+
+00:02:52.290 --> 00:03:11.058
+Event-aware SSL, which they call E-SSL, uses the event
+indicator. Now every patient who converts is a positive for
+
+00:03:11.508 --> 00:03:26.676
+But it throws away something obvious. A patient converting at
+twenty-one months and one converting at twenty-six are at a
+
+00:03:27.126 --> 00:03:39.174
+TE-SSL weights the pull by the time gap. Close in time, strong
+pull. Same event but far apart, weak pull. Censored, pushed
+
+00:03:40.524 --> 00:03:44.604
+The weight itself is a straight line, fitted to each batch.
+
+00:03:45.054 --> 00:03:49.446
+Take the time gap between the two samples, delta i j.
+
+00:03:49.896 --> 00:03:57.624
+Rescale it using the smallest and largest gaps present in that
+batch, so the mapping adapts to whatever spread the batch
+
+00:03:58.074 --> 00:04:06.426
+Alpha and beta set the ends: the closest pair in the batch
+gets the largest weight alpha, the most distant pair gets the
+
+00:04:06.876 --> 00:04:13.404
+It is a simple construction, and being batch-relative is the
+part that makes it work without tuning per dataset.
+
+00:04:14.754 --> 00:04:18.426
+Dropped into the loss, the change is one factor.
+
+00:04:18.876 --> 00:04:27.732
+This is the supervised contrastive objective — sum over
+anchors, average over that anchor's positives, log of a
+
+00:04:28.182 --> 00:04:34.470
+The only difference is omega multiplying each exponential, in
+both the numerator and the denominator.
+
+00:04:34.920 --> 00:04:44.808
+Set every omega to one and you have supervised contrastive
+learning exactly. Remove the label-based positive set as well
+
+00:04:45.258 --> 00:04:50.682
+So the three methods in this paper are nested, which makes the
+comparison unusually clean.
+
+00:04:52.032 --> 00:05:02.592
+The data is ADNI: 493 unique patients, each with one or more
+visits, giving 2,007 three-dimensional T1-weighted scans.
+
+00:05:03.042 --> 00:05:14.082
+Every visit carries a diagnosis — cognitively normal, mild
+cognitive impairment, or Alzheimer's dementia — and the number
+
+00:05:14.532 --> 00:05:21.156
+A converter is someone who was normal or mildly impaired at
+their first visit and developed AD during the study.
+
+00:05:21.606 --> 00:05:28.086
+Splits are made by participant rather than by scan, so no
+patient's images appear on both sides.
+
+00:05:28.536 --> 00:05:43.920
+Worth registering the scale, though: 493 patients is small for
+contrastive pretraining, which typically wants very large
+
+00:05:45.270 --> 00:05:53.430
+The headline result is a clean ladder on the time-dependent
+concordance index, which measures whether the model ranks
+
+00:05:53.880 --> 00:05:58.488
+No pretraining at all: 0.7329.
+
+00:05:58.938 --> 00:06:07.194
+Plain self-supervised pretraining lifts that to 0.7511 — so
+SSL helps here even with no labels.
+
+00:06:07.644 --> 00:06:12.012
+Adding the event label gets 0.7720.
+
+00:06:12.462 --> 00:06:23.694
+And adding time as well gets 0.7873. Each supervisory signal
+contributes, and the two together contribute most, which is
+
+00:06:25.044 --> 00:06:29.196
+The second metric is worth looking at properly rather than
+skimming.
+
+00:06:29.646 --> 00:06:38.238
+Integrated Brier Score assesses the predicted probabilities
+across all time points, not just their ordering. Lower is
+
+00:06:38.688 --> 00:06:49.080
+TE-SSL is best at 0.1889, and no pretraining is worst at
+0.2099. So the headline holds.
+
+00:06:49.530 --> 00:07:02.034
+But the middle two swap over. Plain SSL gets 0.1985 while
+E-SSL, which has more supervision, gets 0.1997 — slightly
+
+00:07:02.484 --> 00:07:15.492
+It is a small difference and the paper does not comment on it.
+Still, it means the clean ladder is a C-td story rather than a
+
+00:07:16.842 --> 00:07:20.538
+The t-SNE plots give a qualitative read on why.
+
+00:07:20.988 --> 00:07:30.852
+On the left, plain SSL. Censored patients and patients with
+observed events are mixed together — the representation has no
+
+00:07:31.302 --> 00:07:38.838
+In the middle, E-SSL. The event label pulls the two groups
+apart, and the separation is visible.
+
+00:07:39.288 --> 00:07:49.008
+On the right, TE-SSL. The separation is cleaner still, and
+within the event group the points are organised by time-to-
+
+00:07:49.458 --> 00:07:58.770
+Treat this as illustration rather than evidence. t-SNE layouts
+depend on perplexity and initialisation, and the paper shows
+
+00:08:00.120 --> 00:08:07.032
+Alpha and beta control how aggressively distant pairs are
+discounted, so their gap is the real hyperparameter.
+
+00:08:07.482 --> 00:08:16.050
+Across six sensible settings the method is fairly stable, and
+it beats both plain SSL and the no-pretraining baseline in
+
+00:08:16.500 --> 00:08:24.372
+The best is alpha of one with beta of 0.9 — a narrow gap,
+meaning distant pairs are only mildly discounted.
+
+00:08:24.822 --> 00:08:36.750
+The exception is the widest gap, alpha 1.5 against beta 1.
+There C-td falls to 0.7330, which is essentially the no-
+
+00:08:37.200 --> 00:08:45.360
+So the weighting helps when it is gentle and stops helping
+when it is aggressive. The paper reports this rather than only
+
+00:08:46.710 --> 00:08:57.102
+To summarise: time-to-event works as a supervisory signal for
+contrastive pretraining, and using it alongside the event
+
+00:08:57.552 --> 00:09:08.352
+The construction is nested — set the weights to one and you
+recover supervised contrastive learning, drop the labels and
+
+00:09:08.802 --> 00:09:18.834
+Concordance rises steadily across the four settings, from
+0.7329 with no pretraining to 0.7873 with TE-SSL.
+
+00:09:19.284 --> 00:09:21.876
+A few things to keep in view.
+
+00:09:22.326 --> 00:09:30.870
+One dataset, 493 patients, no external cohort — and
+contrastive methods usually want far more data than that.
+
+00:09:31.320 --> 00:09:36.096
+Three seeds, with no variance reported and no significance
+testing.
+
+00:09:36.546 --> 00:09:44.346
+The ladder is clean on concordance but not on the Brier score,
+where event-aware SSL falls slightly below plain SSL.
+
+00:09:44.796 --> 00:09:55.308
+And the gain over plain self-supervised pretraining is around
+3.6 points of concordance. That is a representation-learning
+

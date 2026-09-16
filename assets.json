@@ -43,6 +43,10 @@
   "fedfound": {
    "duration": 986,
    "cues": 106
+  },
+  "tessl": {
+   "duration": 596,
+   "cues": 66
   }
  },
  "wall": [
