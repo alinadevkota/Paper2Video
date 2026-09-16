@@ -8,6 +8,7 @@ Writes
     posters/<name>.jpg     one full frame per video, used as the <video> poster
     figures/<name>-<mm-ss>.jpg   frames cropped to the drawing, for the figure wall
     captions/<name>.vtt    the mov_text subtitle track of each video, as WebVTT
+    Videos under videos/mine/ (my own papers) write to posters/mine/ and captions/mine/.
 
 Needs only OpenCV (cv2) and NumPy. No ffmpeg.
 """
@@ -197,11 +198,12 @@ def count_scenes(path):
 
 
 def main():
-    for d in ("posters", "figures", "captions"):
-        Path(d).mkdir(exist_ok=True)
+    for d in ("posters", "figures", "captions", "posters/mine", "captions/mine"):
+        Path(d).mkdir(parents=True, exist_ok=True)
     wall, meta = [], {}
     for video in all_videos():
         name = video.stem
+        sub = "mine/" if video.parent == MINE else ""      # my own papers keep their own folders
         cap = cv2.VideoCapture(str(video))
         fps = cap.get(cv2.CAP_PROP_FPS) or 30
         dur = cap.get(cv2.CAP_PROP_FRAME_COUNT) / fps
@@ -209,7 +211,7 @@ def main():
 
         fr = frame_at(cap, POSTER.get(name, .2))
         if fr is not None:
-            cv2.imwrite(f"posters/{name}.jpg", cv2.resize(fr, (1280, 720), interpolation=cv2.INTER_AREA),
+            cv2.imwrite(f"posters/{sub}{name}.jpg", cv2.resize(fr, (1280, 720), interpolation=cv2.INTER_AREA),
                         [cv2.IMWRITE_JPEG_QUALITY, 82])
 
         for frac in WALL.get(name, []):
@@ -223,7 +225,7 @@ def main():
             wall.append({"src": out, "video": name, "t": round(secs)})
 
         cues = subtitle_cues(video)
-        with open(f"captions/{name}.vtt", "w") as w:
+        with open(f"captions/{sub}{name}.vtt", "w") as w:
             w.write("WEBVTT\n\n")
             for s, e, text in cues:
                 w.write(f"{vtt_time(s)} --> {vtt_time(e)}\n{text}\n\n")

@@ -458,24 +458,25 @@ const VIDEOS = [
 ];
 const TITLE = Object.fromEntries(VIDEOS.map(v => [v.id, v.title]));
 
-// Videos of my own first- and second-author papers. Same fields as VIDEOS plus `role`.
-// Drop the mp4 in videos/, run make_assets.py, then add an entry here.
+// Videos of my own first- and second-author papers.
+// Drop the mp4 in videos/mine/, run make_assets.py, then add an entry here.
 const MINE = [
-  {id:"fedfound", dir:"videos/mine/", title:"FedFound: a federated foundation model for GI endoscopy imaging",
+  {id:"fedfound", mine:true, title:"FedFound: a federated foundation model for GI endoscopy imaging",
    by:"Devkota et al. · npj Digital Medicine", role:"First author", dur:"16:25", scenes:21,
    blurb:"Hospitals pretrain one masked autoencoder together without sharing images. Federated pretraining recovers most of what centralised pretraining gives, the advantage grows as data fragments across 10 and 20 nodes, and plain averaging beats momentum and adaptive server rules almost everywhere. One backbone, three clinical tasks."},
-  {id:"ecg_ef", dir:"videos/mine/", title:"AI analysis for ejection fraction estimation from 12-lead ECG",
+  {id:"ecg_ef", mine:true, title:"AI analysis for ejection fraction estimation from 12-lead ECG",
    by:"Devkota et al. · Scientific Reports 2025", role:"First author", dur:"12:52", scenes:17,
    blurb:"Twelve-lead ECGs from 55,500 patients across 28 West Virginia hospitals, paired with echo-derived ejection fraction. A 1-D convolutional ResNet reaches AUROC 0.87 at the 35% threshold, ahead of a transformer and classical baselines; no single lead is enough; and integrated gradients point at the QRS complex. The first study of its kind on a rural Appalachian population."},
-  // Same fields as VIDEOS plus dir:"videos/mine/" and role: "First author" or "Second author".
+  // Same fields as VIDEOS plus mine:true (files live in videos/mine, posters/mine, captions/mine)
+  // and role: "First author" or "Second author".
 ];
 
 const card = v => `
   <article class="demo" id="${v.id}">
     <div class="frame">
-      <video src="${v.dir || "videos/"}${v.id}.mp4" poster="posters/${v.id}.jpg" controls preload="none"
+      <video src="videos/${v.mine ? "mine/" : ""}${v.id}.mp4" poster="posters/${v.mine ? "mine/" : ""}${v.id}.jpg" controls preload="none"
              playsinline crossorigin="anonymous" aria-label="${v.title}, narrated video">
-        <track kind="captions" src="captions/${v.id}.vtt" srclang="en" label="English">
+        <track kind="captions" src="captions/${v.mine ? "mine/" : ""}${v.id}.vtt" srclang="en" label="English">
       </video>
       <span class="dur" aria-hidden="true">${v.dur}</span>
       ${v.role ? `<span class="role">${v.role}</span>` : ""}

@@ -40,6 +40,7 @@ empty options, every preset and every scene of every storyboard: 281/281 figures
     docs/             the pipeline diagram and design notes
     videos/           rendered videos of papers and lectures by others (mp4, 1080p, subtitle track)
     videos/mine/      videos of my own first- and second-author papers
+                      (their posters and captions go to posters/mine/ and captions/mine/)
     index.html        the project site, served by GitHub Pages from the repo root
     posters/          one frame per video, shown before it plays
     figures/          frames cropped to the drawing, for the site's figure wall
@@ -86,8 +87,8 @@ video seeking and the click-to-jump links behave as they do on GitHub Pages. Pla
    OpenCV and NumPy and writes the poster, wall tiles and WebVTT captions.
 3. Add an entry at the bottom of `index.html`: to the `VIDEOS` array for papers and
    lectures by others, or to the `MINE` array for my own first- and second-author papers
-   (same fields, plus `dir: "videos/mine/"` and `role: "First author"` or `"Second author"`,
-   shown as a badge).
+   (same fields, plus `mine: true` and `role: "First author"` or `"Second author"`, shown
+   as a badge).
    Paste any new tiles into the `WALL` array beside them.
 
 ## Publishing
