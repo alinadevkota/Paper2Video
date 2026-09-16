@@ -20,14 +20,19 @@ import cv2
 import numpy as np
 
 VIDEOS = Path("videos")
+MINE = VIDEOS / "mine"                   # my own first- and second-author papers
+
+
+def all_videos():
+    return sorted(VIDEOS.glob("*.mp4")) + sorted(MINE.glob("*.mp4"))
 BG = (247, 250, 251)                     # frame background, BGR
 TILE = (640, 400)
 
-# Frame used as the poster, as a fraction of the running time.
+# Frame used as the poster: a fraction of the running time, or a time in seconds if > 1.
 POSTER = {
     "transformer": .15, "diffusion": .15, "lejepa": .25, "dreamer4": .25,
     "good": .55, "vlm_scaling": .35, "lacot": .55, "modality_gap": .25,
-    "intuitive_physics": .45, "fedfound": .55,
+    "intuitive_physics": .45, "fedfound": 162, "ecg_ef": 215,
 }
 # Frames that go on the figure wall.
 WALL = {
@@ -135,9 +140,11 @@ def vtt_time(t):
 
 
 # --------------------------------------------------------------------- frames
-def frame_at(cap, frac):
+def frame_at(cap, at):
+    """`at` is a fraction of the video if <= 1, otherwise a time in seconds."""
     n = cap.get(cv2.CAP_PROP_FRAME_COUNT)
-    cap.set(cv2.CAP_PROP_POS_FRAMES, int(n * frac))
+    fps = cap.get(cv2.CAP_PROP_FPS) or 30
+    cap.set(cv2.CAP_PROP_POS_FRAMES, int(at * fps) if at > 1 else int(n * at))
     ok, fr = cap.read()
     return fr if ok else None
 
@@ -193,7 +200,7 @@ def main():
     for d in ("posters", "figures", "captions"):
         Path(d).mkdir(exist_ok=True)
     wall, meta = [], {}
-    for video in sorted(VIDEOS.glob("*.mp4")):
+    for video in all_videos():
         name = video.stem
         cap = cv2.VideoCapture(str(video))
         fps = cap.get(cv2.CAP_PROP_FPS) or 30
@@ -225,7 +232,7 @@ def main():
               f"{len(WALL.get(name, []))} tiles")
 
     if "--scenes" in sys.argv:
-        for video in sorted(VIDEOS.glob("*.mp4")):
+        for video in all_videos():
             n = count_scenes(video)
             meta[video.stem]["scenes"] = n
             print(f"{video.stem:18s} {n} scenes", flush=True)

@@ -1,0 +1,348 @@
+WEBVTT
+
+00:00:00.450 --> 00:00:05.610
+AI analysis for ejection fraction estimation from twelve-lead
+ECG.
+
+00:00:06.060 --> 00:00:10.812
+From West Virginia University, published in Scientific
+Reports.
+
+00:00:11.262 --> 00:00:18.222
+The distinguishing feature is the population: this is the
+first study of its kind on rural Appalachian patients.
+
+00:00:19.572 --> 00:00:31.764
+Heart failure affects roughly 6.7 million American adults, and
+the Heart Failure Society projects 8.5 million by 2030.
+
+00:00:32.214 --> 00:00:42.990
+The standard way to assess it is ejection fraction — the
+fraction of blood the heart pushes out with each beat. A
+
+00:00:43.440 --> 00:00:49.824
+Measuring EF means an echocardiogram: ultrasound imaging
+interpreted by a trained sonographer.
+
+00:00:50.274 --> 00:00:57.594
+That is expensive, time-consuming, and in remote areas simply
+hard to get to. Wait times can be long.
+
+00:00:58.944 --> 00:01:02.664
+A twelve-lead ECG is the opposite kind of test.
+
+00:01:03.114 --> 00:01:11.514
+It takes ten seconds, the equipment is cheap and ubiquitous,
+and a wide range of healthcare staff can perform one — no
+
+00:01:11.964 --> 00:01:16.092
+For most patients the ECG already exists in the chart.
+
+00:01:16.542 --> 00:01:23.142
+What it does not do is measure ejection fraction. There is no
+reading on the trace that says EF.
+
+00:01:23.592 --> 00:01:31.704
+So the question this paper asks is whether the electrical
+signal carries enough information about pumping function for a
+
+00:01:33.054 --> 00:01:38.022
+There is a second motivation, and it is the one that makes
+this study distinct.
+
+00:01:38.472 --> 00:01:49.896
+Almost all prior work on estimating EF from ECG has been
+developed and validated on urban populations, while heart
+
+00:01:51.246 --> 00:02:02.838
+The raw material is 12-lead ECGs at 500 hertz from 55,500
+patients across 28 West Virginia hospitals, paired with echo-
+
+00:02:03.288 --> 00:02:11.328
+That yields 541,267 candidate ECG-EF pairs — but most are
+unusable.
+
+00:02:11.778 --> 00:02:23.922
+Requiring the ECG to fall within sixty days of the echo cuts
+it to 39,239. Beyond that window the ECG may describe a heart
+
+00:02:24.372 --> 00:02:35.364
+Label cleaning removes a little more: ranges like 40 to 45
+averaged to 42.5, text entries standardised, impossible values
+
+00:02:35.814 --> 00:02:49.638
+What survives is 38,960 pairs from 12,197 patients, split into
+training, validation and test — with a patient confined to a
+
+00:02:50.988 --> 00:02:57.132
+The preprocessing is worth following, because the signal and
+the label go through quite different treatments.
+
+00:02:57.582 --> 00:03:03.294
+On the signal side: a ten-second twelve-lead recording sampled
+at 500 hertz.
+
+00:03:03.744 --> 00:03:11.328
+During training a random 2048-sample window is cropped out of
+it, so the model never sees the same segment twice.
+
+00:03:11.778 --> 00:03:18.402
+Gaussian noise of the same length is added, which the paper
+reports improves robustness to real-world noise.
+
+00:03:18.852 --> 00:03:21.276
+Then the signal is normalised.
+
+00:03:21.726 --> 00:03:33.630
+On the label side, an echocardiogram within sixty days gives
+an EF, often as a range like 40 to 45, which is averaged to
+
+00:03:34.080 --> 00:03:36.984
+Only then do the two meet, at the model.
+
+00:03:38.334 --> 00:03:45.678
+EF is a continuous percentage, but the models are trained as
+binary classifiers, so someone has to pick a cut-off.
+
+00:03:46.128 --> 00:03:57.480
+That choice is clinical, not arbitrary. An EF at or below 35
+percent identifies candidates for implantable defibrillators
+
+00:03:57.930 --> 00:04:04.842
+Forty, forty-five and fifty percent mark progressively less
+severe boundaries for reduced ejection fraction.
+
+00:04:05.292 --> 00:04:13.332
+Most prior work fixes the threshold at 35 and stops. This
+paper runs all four as separate experiments.
+
+00:04:13.782 --> 00:04:21.846
+That matters because moving the threshold also changes the
+class balance — and at 35 percent the low-EF group is a small
+
+00:04:23.196 --> 00:04:34.332
+On the left, the distribution of echo-derived EF values across
+the cohort. Most patients sit in the normal range, with a tail
+
+00:04:34.782 --> 00:04:44.238
+On the right, what that means once you threshold it. At every
+cut-off the classes are imbalanced, and the imbalance gets
+
+00:04:44.688 --> 00:04:51.672
+The three bars per group are the training, validation and test
+splits, showing the balance is consistent across them.
+
+00:04:52.122 --> 00:05:01.434
+This is why they use class-weighted loss and minority
+oversampling during training, and why they treat F1 rather
+
+00:05:02.784 --> 00:05:07.152
+They compare five models spanning the range from classical to
+modern.
+
+00:05:07.602 --> 00:05:19.050
+Support vector machine with an RBF kernel, random forest, a
+three-layer MLP, a one-dimensional ResNet with ten residual
+
+00:05:19.500 --> 00:05:28.116
+ResNet wins with an AUROC of 0.8665. The transformer is second
+at 0.8222.
+
+00:05:28.566 --> 00:05:37.494
+The interesting result is in the middle. Random forest and
+SVM, both classical, beat the MLP — which is a neural network.
+
+00:05:37.944 --> 00:05:51.096
+So depth alone is not what helps. What helps is an
+architecture suited to the signal: convolution over a time
+
+00:05:52.446 --> 00:05:58.542
+The ROC curves show the same ordering, with ResNet's curve
+furthest toward the top-left corner.
+
+00:05:58.992 --> 00:06:06.240
+The right panel is a subtler point. It plots how much each
+model's AUROC varies across the four thresholds.
+
+00:06:06.690 --> 00:06:14.370
+The deep models vary most; ResNet varies most of all. SVM and
+random forest are the most stable.
+
+00:06:14.820 --> 00:06:25.500
+The authors read that two ways, and both are fair. Rigid
+decision boundaries are less sensitive to a shifting cut-off,
+
+00:06:25.950 --> 00:06:34.230
+The flip side is that a model whose behaviour changes
+substantially with the threshold needs re-validating whenever
+
+00:06:35.580 --> 00:06:42.060
+Across all four thresholds ResNet stays on top, and the
+ranking of the five models barely changes.
+
+00:06:42.510 --> 00:06:52.470
+But the level does. AUROC is highest at 35 percent — 0.8665 —
+and declines steadily to 0.8266 at 50.
+
+00:06:52.920 --> 00:07:00.840
+The model is most discriminative for the sickest patients,
+which is convenient, because that is the group where the
+
+00:07:01.290 --> 00:07:08.874
+It is also the group where a screening test would be most
+useful: flagging patients whose EF is low enough to warrant
+
+00:07:10.224 --> 00:07:14.448
+One detail worth pausing on, because it is easy to misread.
+
+00:07:14.898 --> 00:07:23.778
+As the threshold rises, AUROC falls — from 0.8665 at 35
+percent down to 0.8266 at 50.
+
+00:07:24.228 --> 00:07:32.508
+F1 does the opposite, climbing from 0.710 to 0.736. The two
+lines cross.
+
+00:07:32.958 --> 00:07:42.558
+That is not a contradiction. AUROC is influenced by the
+majority class, and at the 35 percent threshold the low-EF
+
+00:07:43.008 --> 00:07:49.320
+F1 balances precision and recall on the positive class, so
+imbalance affects it far less.
+
+00:07:49.770 --> 00:07:56.538
+Reporting both, and being explicit about which is primary, is
+the right call on a dataset this skewed.
+
+00:07:57.888 --> 00:08:08.040
+If EF could be estimated from one or two leads, this becomes
+deployable on a wearable or a handheld device rather than a
+
+00:08:08.490 --> 00:08:21.882
+Every single lead lands in a narrow band around 0.82 to 0.83
+AUROC. Lead V2 is best at 0.8294, V3 worst at 0.8171.
+
+00:08:22.332 --> 00:08:30.324
+Leads I, aVL, aVF and V1 are consistently among the stronger
+ones, so they test all six pairings of those four.
+
+00:08:30.774 --> 00:08:41.214
+The best pair, I and aVL, reaches 0.8354 — better than any
+single lead, and still well below the 0.8665 from all twelve.
+
+00:08:41.664 --> 00:08:50.904
+The honest reading: no single lead and no pair is sufficient.
+The twelve-lead combination carries information that no subset
+
+00:08:52.254 --> 00:08:59.190
+The 60-day window between ECG and echo is a design choice, so
+they vary it from 10 to 60 days.
+
+00:08:59.640 --> 00:09:06.072
+Performance rises steadily with the window, peaking at 60 days
+and the 35 percent threshold.
+
+00:09:06.522 --> 00:09:16.386
+There are two explanations and the paper is careful about
+this. A wider window admits more training pairs, so part of
+
+00:09:16.836 --> 00:09:23.244
+It also weakens the pairing — an ECG two months from the echo
+describes a heart that may have changed.
+
+00:09:23.694 --> 00:09:29.262
+Sixty days is where the dataset ran out, so it is not clear
+the curve has plateaued.
+
+00:09:30.612 --> 00:09:40.380
+For interpretability they use integrated gradients, which
+attributes a prediction back to each input sample by
+
+00:09:40.830 --> 00:09:48.174
+This is one patient, correctly predicted as low EF. Red marks
+the regions contributing most.
+
+00:09:48.624 --> 00:09:55.944
+The attribution concentrates on the QRS complex — the sharp
+deflection produced by ventricular depolarisation.
+
+00:09:56.394 --> 00:10:07.314
+That is a coherent finding rather than a coincidence: QRS
+morphology and duration reflect how the ventricles conduct and
+
+00:10:07.764 --> 00:10:14.268
+Contribution varies between patients, though, which is why
+they also aggregate across the population.
+
+00:10:15.618 --> 00:10:25.626
+Summing attributions across the test set gives a per-lead
+picture, broken down by outcome — true positives, true
+
+00:10:26.076 --> 00:10:32.412
+For predicting low EF, leads I, aVR, V2 and V3 carry most of
+the weight.
+
+00:10:32.862 --> 00:10:42.126
+For predicting high EF, no lead stands out. The model appears
+to be detecting the presence of abnormality rather than
+
+00:10:42.576 --> 00:10:50.400
+Combining this with the patient-level result: it is the QRS
+region of those four leads that identifies low ejection
+
+00:10:50.850 --> 00:10:57.666
+That is a testable, clinically legible claim, which is more
+than most interpretability analyses produce.
+
+00:10:59.016 --> 00:11:07.536
+Summing the attributions across the test set gives a per-lead
+picture, and it is easier to read on the standard twelve-lead
+
+00:11:07.986 --> 00:11:13.074
+Leads I and aVR carry the most weight for predicting low
+ejection fraction.
+
+00:11:13.524 --> 00:11:19.356
+V2 and V3 follow. The remaining eight contribute substantially
+less.
+
+00:11:19.806 --> 00:11:28.782
+And within those leads the attribution concentrates on the QRS
+complex — the sharp deflection from ventricular
+
+00:11:29.232 --> 00:11:38.088
+That is physiologically coherent: QRS morphology reflects how
+the ventricles conduct and contract, which is what ejection
+
+00:11:39.438 --> 00:11:51.102
+To summarise: a ten-second ECG carries enough information to
+identify reduced ejection fraction at an AUROC of about 0.87,
+
+00:11:51.552 --> 00:12:03.408
+The best architecture was a one-dimensional ResNet, beating
+both a transformer and a plain MLP — and the MLP lost to
+
+00:12:03.858 --> 00:12:12.114
+Interpretability points at the QRS region of leads I, aVR, V2
+and V3, which is physiologically coherent.
+
+00:12:12.564 --> 00:12:14.820
+A few things to keep in view.
+
+00:12:15.270 --> 00:12:22.374
+There is no external validation — every result comes from one
+hospital system, and the authors name this themselves.
+
+00:12:22.824 --> 00:12:30.600
+An AUROC near 0.87 supports triage, deciding who should get an
+echo sooner, rather than replacing the echo.
+
+00:12:31.050 --> 00:12:38.106
+These are binary classifiers at chosen cut-offs, not EF
+estimators, so the numbers move with the cut-off.
+
+00:12:38.556 --> 00:12:51.228
+And on fairness: the contribution here is studying a
+population that prior work overlooked. Reporting performance
+

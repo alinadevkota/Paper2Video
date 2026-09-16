@@ -38,7 +38,8 @@ empty options, every preset and every scene of every storyboard: 281/281 figures
     src/              the tool: renderer, figure library, storyboard planner, PPTX export
     storyboards/      one storyboard JSON per paper or lecture
     docs/             the pipeline diagram and design notes
-    videos/           the rendered videos (mp4, 1080p, embedded subtitle track)
+    videos/           rendered videos of papers and lectures by others (mp4, 1080p, subtitle track)
+    videos/mine/      videos of my own first- and second-author papers
     index.html        the project site, served by GitHub Pages from the repo root
     posters/          one frame per video, shown before it plays
     figures/          frames cropped to the drawing, for the site's figure wall
@@ -71,20 +72,22 @@ its light/dark setting.
 
 Preview locally:
 
-    python -m http.server 8000        # then open http://localhost:8000
+    python serve.py                   # then open http://localhost:8000
 
-Python's built-in server does not support range requests, so seeking inside a video and
-the click-to-jump links will not work locally; they do on GitHub Pages. For a faithful
-preview use a server that supports ranges, such as `npx serve .`.
+`serve.py` is a few lines over Python's built-in server that add HTTP range support, so
+video seeking and the click-to-jump links behave as they do on GitHub Pages. Plain
+`python -m http.server` also works but cannot seek inside videos.
 
 ### Adding a video
 
-1. Render it to `videos/name.mp4` and put its storyboard at `storyboards/name.json`.
+1. Render it to `videos/name.mp4`, or `videos/mine/name.mp4` for one of my own papers, and put
+   its storyboard at `storyboards/name.json`.
 2. Add `name` to `POSTER` and `WALL` in `make_assets.py`, then run it. It needs only
    OpenCV and NumPy and writes the poster, wall tiles and WebVTT captions.
 3. Add an entry at the bottom of `index.html`: to the `VIDEOS` array for papers and
    lectures by others, or to the `MINE` array for my own first- and second-author papers
-   (same fields, plus `role: "First author"` or `"Second author"`, shown as a badge).
+   (same fields, plus `dir: "videos/mine/"` and `role: "First author"` or `"Second author"`,
+   shown as a badge).
    Paste any new tiles into the `WALL` array beside them.
 
 ## Publishing
@@ -92,7 +95,7 @@ preview use a server that supports ranges, such as `npx serve .`.
 Push to GitHub, then in the repository settings enable Pages from the `main` branch,
 root folder. `.nojekyll` makes Pages serve the files as they are.
 
-The videos total about 275 MB. Every file is under GitHub's 100 MB per-file limit, so they
+The videos total about 300 MB. Every file is under GitHub's 100 MB per-file limit, so they
 are committed directly. Do not put them in Git LFS: GitHub Pages does not serve LFS objects.
 
 ## License

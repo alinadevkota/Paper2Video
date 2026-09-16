@@ -8,10 +8,6 @@
    "duration": 1050,
    "cues": 101
   },
-  "fedfound": {
-   "duration": 986,
-   "cues": 106
-  },
   "good": {
    "duration": 809,
    "cues": 75
@@ -39,6 +35,14 @@
   "vlm_scaling": {
    "duration": 627,
    "cues": 71
+  },
+  "ecg_ef": {
+   "duration": 772,
+   "cues": 88
+  },
+  "fedfound": {
+   "duration": 986,
+   "cues": 106
   }
  },
  "wall": [
