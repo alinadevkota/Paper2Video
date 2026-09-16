@@ -143,6 +143,7 @@ header#top .lede{max-width:64ch}
 /* demo reel */
 .reel{display:grid; gap:2em 1.25em; margin-top:1.75em; grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr))}
 .demo{scroll-margin-top:5em}
+@media (min-width:760px){.reel.two{grid-template-columns:repeat(2,minmax(0,1fr)); gap:2.25em 2em}}
 .reel.featured .demo{grid-column:1/-1; display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:0 1.75em; align-items:center}
 .reel.featured .demo .frame{grid-row:1/4}
 .reel.featured .demo h3{margin-top:0; font-size:1.25em}
@@ -308,8 +309,8 @@ footer .caption{font-size:.85em}
   </div>
 
   <ul class="facts">
-    <li><b>12</b>videos here</li>
-    <li><b>2 h 51 m</b>of narrated figures</li>
+    <li><b>13</b>videos here</li>
+    <li><b>3 h 8 m</b>of narrated figures</li>
     <li><b>100</b>figure primitives</li>
     <li><b>181</b>presets</li>
     <li><b>13</b>storyboards</li>
@@ -339,11 +340,11 @@ footer .caption{font-size:.85em}
 </section>
 
 <section id="mine">
-  <h2>My papers</h2>
-  <p>Explainers for the papers I wrote as first or second author, made with the same pipeline.
-  Each one starts from the paper's storyboard and is reviewed by the person who knows the
-  work best.</p>
-  <div class="reel" id="mine-reel"></div>
+  <h2>A few of my own papers</h2>
+  <p>A selection of my first- and second-author papers, most recent first, made with the same
+  pipeline. Each one starts from the paper's storyboard and is reviewed by the person who knows
+  the work best.</p>
+  <div class="reel two" id="mine-reel"></div>
 </section>
 
 <section id="demos">
@@ -524,18 +525,25 @@ const TITLE = Object.fromEntries(VIDEOS.map(v => [v.id, v.title]));
 
 // Videos of my own first- and second-author papers.
 // Drop the mp4 in videos/mine/, run make_assets.py, then add an entry here.
-const MINE = [
+const MINE = [   // most recent publication first
   {id:"fedfound", mine:true, title:"FedFound: a federated foundation model for GI endoscopy imaging",
-   by:"Devkota et al. · npj Digital Medicine", role:"First author", dur:"16:25", scenes:21,
+   by:"Devkota et al. · npj Digital Medicine 2026", role:"First author", dur:"16:25", scenes:21,
+   paper:"https://arxiv.org/pdf/2505.24108",
    blurb:"Hospitals pretrain one masked autoencoder together without sharing images. Federated pretraining recovers most of what centralised pretraining gives, the advantage grows as data fragments across 10 and 20 nodes, and plain averaging beats momentum and adaptive server rules almost everywhere. One backbone, three clinical tasks."},
+  {id:"fedvg", mine:true, title:"FedVG: gradient-guided aggregation for enhanced federated learning",
+   by:"Devkota et al. · CVPR Findings 2026", role:"First author", dur:"17:26", scenes:25,
+   paper:"https://openaccess.thecvf.com/content/CVPR2026F/papers/Devkota_FedVG_Gradient-Guided_Aggregation_for_Enhanced_Federated_Learning_CVPRF_2026_paper.pdf",
+   blurb:"One line of the federated learning algorithm: how much the server trusts each client. FedAvg weights by data volume, which rewards large but narrow datasets. FedVG instead weights by the gradient norm on a neutral validation set, so clients in flat, general basins count more. It drops into six baselines, holds up under severe label skew, and gains over ten points on medical imaging at the hardest setting."},
   {id:"ecg_ef", mine:true, title:"AI analysis for ejection fraction estimation from 12-lead ECG",
    by:"Devkota et al. · Scientific Reports 2025", role:"First author", dur:"12:52", scenes:17,
+   paper:"https://doi.org/10.1038/s41598-025-97113-0",
    blurb:"Twelve-lead ECGs from 55,500 patients across 28 West Virginia hospitals, paired with echo-derived ejection fraction. A 1-D convolutional ResNet reaches AUROC 0.87 at the 35% threshold, ahead of a transformer and classical baselines; no single lead is enough; and integrated gradients point at the QRS complex. The first study of its kind on a rural Appalachian population."},
   {id:"tessl", mine:true, title:"TE-SSL: time and event-aware self-supervised learning for Alzheimer's disease progression",
-   by:"Thrasher, Devkota et al. · for the ADNI", role:"Second author", dur:"9:56", scenes:12,
+   by:"Thrasher, Devkota et al. · MICCAI 2024", role:"Second author", dur:"9:56", scenes:12,
+   paper:"https://papers.miccai.org/miccai-2024/paper/3866_paper.pdf",
    blurb:"Contrastive pretraining that uses survival labels instead of class labels: how long until a patient converts, and whether the event was observed. Event-aware SSL pulls patients with the same outcome together; TE-SSL also weights the pull by the gap in time to event. On 493 ADNI patients and 2,007 MRI scans, concordance rises from 0.733 with no pretraining to 0.787, and the paper is candid about a single small cohort."},
-  // Same fields as VIDEOS plus mine:true (files live in videos/mine, posters/mine, captions/mine)
-  // and role: "First author" or "Second author".
+  // Same fields as VIDEOS plus mine:true (files live in videos/mine, posters/mine, captions/mine),
+  // role: "First author" or "Second author", and an optional paper: URL.
 ];
 
 const card = v => `
@@ -549,7 +557,7 @@ const card = v => `
       ${v.role ? `<span class="role">${v.role}</span>` : ""}
     </div>
     <h3>${v.title}</h3>
-    <p class="meta"><span>${v.by}</span><span>${v.scenes} scenes</span><span>${v.dur}</span></p>
+    <p class="meta"><span>${v.by}</span><span>${v.scenes} scenes</span><span>${v.dur}</span>${v.paper ? `<span><a href="${v.paper}">Paper ↗</a></span>` : ""}</p>
     <p class="caption">${v.blurb}</p>
   </article>`;
 
@@ -559,6 +567,7 @@ mine.innerHTML = MINE.length
   ? MINE.map(card).join("")
   : `<p class="empty">Videos for these papers are being rendered and will appear here.</p>`;
 mine.classList.toggle("featured", MINE.length === 1);   // one entry: video beside its description
+mine.classList.toggle("two", MINE.length > 1);
 
 // Structured data for each video, so search engines can list them as videos.
 const SITE = "https://alinadevkota.github.io/Paper2Video/";

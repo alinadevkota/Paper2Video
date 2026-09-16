@@ -87,8 +87,8 @@ video seeking and the click-to-jump links behave as they do on GitHub Pages. Pla
    OpenCV and NumPy and writes the poster, wall tiles and WebVTT captions.
 3. Add an entry at the bottom of `index.html`: to the `VIDEOS` array for papers and
    lectures by others, or to the `MINE` array for my own first- and second-author papers
-   (same fields, plus `mine: true` and `role: "First author"` or `"Second author"`, shown
-   as a badge).
+   (same fields, plus `mine: true`, `role: "First author"` or `"Second author"` shown as a
+   badge, and an optional `paper:` link). Keep `MINE` ordered most recent publication first.
    Paste any new tiles into the `WALL` array beside them.
 
 ## Publishing
@@ -98,7 +98,7 @@ root folder. `.nojekyll` makes Pages serve the files as they are. `robots.txt` a
 `sitemap.xml` are for search engines; the page also carries JSON-LD structured data for the
 site, the FAQ and every video, generated from the same arrays that build the cards.
 
-The videos total about 320 MB. Every file is under GitHub's 100 MB per-file limit, so they
+The videos total about 350 MB. Every file is under GitHub's 100 MB per-file limit, so they
 are committed directly. Do not put them in Git LFS: GitHub Pages does not serve LFS objects.
 
 ## License

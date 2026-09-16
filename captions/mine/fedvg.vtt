@@ -1,0 +1,518 @@
+WEBVTT
+
+00:00:00.450 --> 00:00:05.634
+FedVG: gradient-guided aggregation for enhanced federated
+learning.
+
+00:00:06.084 --> 00:00:13.476
+From West Virginia University and the University of Aberdeen,
+in the CVPR 2026 Findings track.
+
+00:00:13.926 --> 00:00:21.510
+The whole paper is about one line of the federated learning
+algorithm — the line where the server decides how much each
+
+00:00:22.860 --> 00:00:30.612
+In federated learning, each client trains locally and sends
+its update to a server, which combines them into a new global
+
+00:00:31.062 --> 00:00:37.806
+FedAvg does that by weighting each client's update by n-k over
+N — its share of the total training data.
+
+00:00:38.256 --> 00:00:46.176
+The reasoning is straightforward. A client with more data
+probably trained a more reliable model, so it should count for
+
+00:00:46.626 --> 00:00:52.338
+That holds when clients look alike. The premise of this paper
+is that they do not.
+
+00:00:53.688 --> 00:01:03.048
+Under non-IID data, clients differ in class distribution,
+image characteristics and how much their local optimum
+
+00:01:03.498 --> 00:01:12.186
+A client can hold a large but narrow dataset — many images of
+a handful of classes — and train a model that is confident and
+
+00:01:12.636 --> 00:01:17.292
+A smaller client with a broader mix might learn far more
+useful features.
+
+00:01:17.742 --> 00:01:24.006
+Weighting by volume gives the first client more influence than
+the second, which is exactly backwards.
+
+00:01:24.456 --> 00:01:30.936
+The authors put it bluntly: naive reliance on data volume
+overlooks the deeper behaviour of training.
+
+00:01:32.286 --> 00:01:37.758
+Here is the problem geometrically, and this is the paper's own
+framing in Figure 2.
+
+00:01:38.208 --> 00:01:41.664
+Every client starts from the same broadcast model.
+
+00:01:42.114 --> 00:01:46.554
+The first descends toward whichever minimum its own data
+favours.
+
+00:01:47.004 --> 00:01:52.044
+So does the second — somewhere quite different, because it
+holds different classes.
+
+00:01:52.494 --> 00:01:56.454
+And the third. That divergence is client drift.
+
+00:01:56.904 --> 00:02:05.472
+The server then averages those endpoints, and when the clients
+disagree strongly the average can land in a high-loss region
+
+00:02:05.922 --> 00:02:12.498
+So the question becomes: is there a better signal than dataset
+size for deciding whose update to trust?
+
+00:02:13.848 --> 00:02:23.208
+Now put both aggregation rules on the same surface, with one
+extra thing marked: the global optimum, which is the broad
+
+00:02:23.658 --> 00:02:27.066
+The clients start together at the broadcast model.
+
+00:02:27.516 --> 00:02:34.260
+Clients one and two descend into narrow, sharp minima — good
+for their own data, poor everywhere else.
+
+00:02:34.710 --> 00:02:40.110
+Client three lands in a broad, flat basin that sits close to
+the global optimum.
+
+00:02:40.560 --> 00:02:49.680
+FedAvg averages the three endpoints with equal weight. That is
+the red star, pulled away from the global basin by the two
+
+00:02:50.130 --> 00:03:03.186
+FedVG weights by validation gradient. Client three's gradient
+is the smallest, because a flat region needs the least
+
+00:03:04.536 --> 00:03:09.048
+The answer comes from work on flat minima and sharpness-aware
+training.
+
+00:03:09.498 --> 00:03:18.786
+Two models can sit at the same loss value in very different
+places. One in a broad, flat basin; the other in a narrow,
+
+00:03:19.236 --> 00:03:25.716
+The flat one generalises better — small parameter changes
+barely move the loss, so it is robust.
+
+00:03:26.166 --> 00:03:36.198
+And crucially, you can tell them apart without knowing the
+curvature directly. Near a flat minimum the gradient is small.
+
+00:03:36.648 --> 00:03:42.168
+So the magnitude of the gradient is a usable proxy for how
+well a model will generalise.
+
+00:03:42.618 --> 00:03:50.250
+The authors also note it serves as a proxy for epistemic
+uncertainty — large gradients mean the model is less
+
+00:03:51.600 --> 00:03:57.312
+There is an immediate problem with measuring a gradient. Whose
+data do you measure it on?
+
+00:03:57.762 --> 00:04:05.826
+Each client holds its own private, skewed dataset — and a
+gradient taken there is biased by exactly the skew we are
+
+00:04:06.276 --> 00:04:10.380
+The same is true of the second client, and every one after it.
+
+00:04:10.830 --> 00:04:18.654
+So FedVG puts a shared validation set on the server, fixed
+across all rounds and built from readily available public
+
+00:04:19.104 --> 00:04:25.752
+Because it belongs to no client, it is a neutral yardstick —
+and no private data has to move for it to work.
+
+00:04:27.102 --> 00:04:36.582
+The computation is simple. After a client finishes local
+training, the server runs its model on the validation set and
+
+00:04:37.032 --> 00:04:47.760
+That gives a gradient for every layer. FedVG takes the norm of
+each layer's gradient and averages across all L layers,
+
+00:04:48.210 --> 00:04:53.922
+Then it inverts: the score is one over G-bar, normalised so
+the scores sum to one.
+
+00:04:54.372 --> 00:05:02.892
+A small gradient norm means the model already sits somewhere
+generalisable and needs little adjustment, so it earns a
+
+00:05:03.342 --> 00:05:09.246
+That is the whole method. It replaces n-k over N and changes
+nothing else.
+
+00:05:10.596 --> 00:05:15.588
+It is worth seeing the computation itself, because it is
+smaller than it sounds.
+
+00:05:16.038 --> 00:05:21.390
+A batch from the shared validation set goes forward through
+the client's network to a loss.
+
+00:05:21.840 --> 00:05:25.776
+One backward pass sends gradients back through every layer.
+
+00:05:26.226 --> 00:05:37.938
+The server reads the norm of each layer's gradient. Notice
+they are not alike: the deeper layers carry much larger
+
+00:05:38.388 --> 00:05:44.556
+That average is G-bar. Its reciprocal, normalised across
+clients, is the weight.
+
+00:05:45.906 --> 00:05:50.946
+The choice to average across layers rather than read a single
+number is deliberate.
+
+00:05:51.396 --> 00:06:00.492
+Prior work shows layers converge at different rates: shallow
+layers reach flatter minima with stable gradients, while
+
+00:06:00.942 --> 00:06:09.558
+The appendix confirms this in the federated setting — later
+layers carry consistently larger and more variable gradient
+
+00:06:10.008 --> 00:06:23.064
+There is also a reason not to use validation loss instead. The
+classifier head absorbs most of the local bias, so the loss
+
+00:06:23.514 --> 00:06:29.826
+Gradients across all layers give a more structural picture of
+where a client's representation has drifted.
+
+00:06:31.176 --> 00:06:35.928
+The paper also grounds the choice theoretically, which is
+worth a moment.
+
+00:06:36.378 --> 00:06:44.730
+The gradient of the cross-entropy loss is the negative score
+function, and the second moment of the score function is the
+
+00:06:45.180 --> 00:06:52.284
+Fisher information measures curvature — how much the model's
+output distribution shifts under a small parameter change.
+
+00:06:52.734 --> 00:06:57.966
+Large Fisher means a sharp region; small Fisher means a broad,
+stable one.
+
+00:06:58.416 --> 00:07:10.008
+So the L2 norm of the gradient is, up to a square root, a
+diagonal approximation of the Fisher information. Weighting by
+
+00:07:10.458 --> 00:07:15.066
+That turns an intuition about flat minima into something with
+a footing.
+
+00:07:16.416 --> 00:07:21.072
+Now the design consequence, which is the part I find most
+useful.
+
+00:07:21.522 --> 00:07:32.346
+Almost every federated algorithm fits one template: take the
+global model, subtract a weighted sum of client updates, and
+
+00:07:32.796 --> 00:07:42.972
+FedAvg sets that regulariser to zero. FedDyn uses a dynamic
+term, FedAvgM adds momentum, Scaffold adds control variates.
+
+00:07:43.422 --> 00:07:47.166
+All of them use s-k equal to n-k over N.
+
+00:07:47.616 --> 00:07:55.416
+FedVG swaps only the s-k. Client-side optimisation, local
+epochs, regularisation — none of it changes.
+
+00:07:55.866 --> 00:08:02.370
+So it is not a competing algorithm so much as a replaceable
+component, and that is how they evaluate it.
+
+00:08:03.720 --> 00:08:08.760
+Before the numbers, it is worth seeing what the Dirichlet
+parameter does to the data.
+
+00:08:09.210 --> 00:08:19.170
+At alpha of 100 every client holds roughly the same mix of
+classes. This is close to the IID case that federated
+
+00:08:19.620 --> 00:08:25.836
+At alpha of 0.05 most clients hold one or two classes almost
+exclusively.
+
+00:08:26.286 --> 00:08:34.614
+A model trained locally on that will be confident and badly
+skewed — and under FedAvg it still gets weighted purely by how
+
+00:08:35.964 --> 00:08:45.372
+The experiments sweep heterogeneity using a Dirichlet
+parameter alpha: 100 is nearly IID, 0.05 is severely skewed.
+
+00:08:45.822 --> 00:08:54.582
+At alpha of 100 everything is within about a point of
+everything else. The problem is easy and the aggregation rule
+
+00:08:55.032 --> 00:09:05.400
+As alpha falls, the methods separate. At 0.1 FedVG reaches
+61.06 against FedAvg's 57.93.
+
+00:09:05.850 --> 00:09:19.650
+At 0.05, the hardest setting, FedVG is at 53.58 and FedAvg at
+48.83 — and Scaffold, which was the best method in the easy
+
+00:09:20.100 --> 00:09:28.380
+That reversal is the pattern worth noticing. Methods that win
+when clients are similar are not the ones that hold up when
+
+00:09:29.730 --> 00:09:35.298
+The paper's Figure 3 puts all three main datasets side by side
+as alpha falls.
+
+00:09:35.748 --> 00:09:41.412
+On CIFAR-10, the methods are indistinguishable at the left and
+fan apart at the right.
+
+00:09:41.862 --> 00:09:47.214
+On OrganAMNIST, FedVG is above every baseline across the whole
+range.
+
+00:09:47.664 --> 00:09:52.584
+On COVID19 the separation at the far right is the widest of
+the three.
+
+00:09:53.034 --> 00:10:00.618
+Note the shaded bands as well as the lines. FedVG's are
+consistently narrow, which is the stability claim.
+
+00:10:01.968 --> 00:10:07.776
+The method is not tied to convolutional networks, so they
+repeat it on Vision Transformers.
+
+00:10:08.226 --> 00:10:13.842
+ViT-S/16 on COVID19 and ViT-B/16 on DermaMNIST.
+
+00:10:14.292 --> 00:10:20.844
+Here FedVG ranks among the top performers rather than clearly
+leading, and the paper says exactly that.
+
+00:10:21.294 --> 00:10:30.246
+On DermaMNIST it reaches 76.20 at the hardest setting, the
+best of any method, but the margins are narrower than on the
+
+00:10:31.596 --> 00:10:37.404
+The clearest single result is COVID19 at alpha equals 0.05.
+
+00:10:37.854 --> 00:10:49.734
+FedVG reaches 75.18 percent. FedAvg manages 64.92, and the
+next best baseline, Scaffold, reaches 70.05.
+
+00:10:50.184 --> 00:10:55.752
+That is a margin of over ten points on a medical imaging task
+under realistic skew.
+
+00:10:56.202 --> 00:11:04.842
+FedVG also has the lowest standard deviation across five seeds
+here — 1.36, against five and a half for FedAvg.
+
+00:11:05.292 --> 00:11:13.284
+They run Wilcoxon signed-rank tests throughout, and report
+that no baseline significantly outperforms FedVG at any alpha.
+
+00:11:14.634 --> 00:11:20.682
+Because FedVG only changes the weighting term, they test it
+inside all six baselines.
+
+00:11:21.132 --> 00:11:32.100
+The gains are largest where the base method struggles. FedAvgM
+on OrganAMNIST goes from 60.15 to 77.01 — nearly seventeen
+
+00:11:32.550 --> 00:11:43.734
+Elastic is a strong competitor in its own right, and it gains
+too: over nine points on COVID19 and eight on OrganAMNIST. So
+
+00:11:44.184 --> 00:11:48.192
+FedProx picks up around eight points on COVID19.
+
+00:11:48.642 --> 00:11:56.466
+But it does not help everywhere, and they say so. Scaffold
+loses two points on CIFAR-10 and FedDyn nearly seven.
+
+00:11:56.916 --> 00:12:06.468
+Those two already carry their own drift correction — control
+variates and dynamic regularisation — so a second correction
+
+00:12:07.818 --> 00:12:17.586
+The obvious objection to the whole approach is the validation
+set. If it has to resemble the client data, the method is far
+
+00:12:18.036 --> 00:12:29.028
+Start from the reference points: FedAvg with no validation set
+reaches 48.83, and FedVG with an in-distribution set reaches
+
+00:12:29.478 --> 00:12:41.214
+Now replace that set with genuinely separate public data.
+STL-10 shares nine classes with CIFAR-10 and gives 53.85 —
+
+00:12:41.664 --> 00:12:48.216
+CIFAR-100, where only three classes map across, still reaches
+52.62.
+
+00:12:48.666 --> 00:12:56.946
+So the signal does not appear to need a carefully matched
+validation set. That is the most practically important result
+
+00:12:58.296 --> 00:13:04.080
+A second worry about the validation set: in practice it may
+not be class-balanced either.
+
+00:13:04.530 --> 00:13:10.650
+They control that with a ratio rho. At rho of one the set
+holds every class equally.
+
+00:13:11.100 --> 00:13:15.972
+As rho falls the set becomes progressively dominated by a few
+classes.
+
+00:13:16.422 --> 00:13:23.070
+The method's premise is that this set is a neutral reference,
+so the question is how neutral it actually has to be.
+
+00:13:24.420 --> 00:13:30.204
+A second worry about the validation set: in practice it may
+not be class-balanced either.
+
+00:13:30.654 --> 00:13:39.246
+They deliberately imbalance it, controlled by a ratio rho,
+where rho of one is perfectly balanced and smaller values are
+
+00:13:39.696 --> 00:13:45.144
+FedVG stays above FedAvg across the whole range, even at high
+imbalance.
+
+00:13:45.594 --> 00:13:54.546
+That matters because the method's whole premise is that the
+validation set is a neutral reference. This tests how neutral
+
+00:13:55.896 --> 00:14:01.152
+Before the result, the setup, because it is what makes this
+ablation convincing.
+
+00:14:01.602 --> 00:14:06.498
+Nine clients are heterogeneous — each dominated by one or two
+classes.
+
+00:14:06.948 --> 00:14:13.908
+A tenth holds a balanced mix of everything. It should learn
+the best features, so it should earn the highest weight.
+
+00:14:14.358 --> 00:14:24.990
+Crucially, every client holds the same number of images.
+Dataset size cannot explain any difference, so whatever the
+
+00:14:26.340 --> 00:14:32.388
+This is the most direct test of whether the mechanism does
+what it claims, and it is worth the detail.
+
+00:14:32.838 --> 00:14:44.502
+They build nine heterogeneous clients with identical dataset
+sizes, then add a tenth that is perfectly balanced. That
+
+00:14:44.952 --> 00:14:53.520
+With the L1 norm, and with L2, the bold line climbs steadily
+above the others over two hundred rounds. The method finds it.
+
+00:14:53.970 --> 00:15:03.570
+With the spectral norm, and with a delta norm measuring
+distance from the global model, the bold line stays in the
+
+00:15:04.020 --> 00:15:11.268
+Because every client holds the same amount of data, this
+isolates the mechanism completely from the volume confound.
+
+00:15:12.618 --> 00:15:16.746
+A natural extension is to form more than one weight per
+client.
+
+00:15:17.196 --> 00:15:23.292
+Modelwise is what we have described: average every layer's
+gradient norm into a single score.
+
+00:15:23.742 --> 00:15:31.134
+Blockwise groups the layers into residual blocks and forms one
+score per block, so different depths can be weighted
+
+00:15:31.584 --> 00:15:34.944
+Layerwise goes all the way — one score per layer.
+
+00:15:35.394 --> 00:15:41.970
+The gradients are identical in all three. What changes is how
+many numbers you turn them into.
+
+00:15:43.320 --> 00:15:49.776
+A natural extension is a separate weight per layer, or per
+residual block, rather than one per client.
+
+00:15:50.226 --> 00:15:56.634
+On CIFAR-10 and OrganAMNIST the simplest option wins —
+modelwise, one score per client.
+
+00:15:57.084 --> 00:16:03.036
+But on COVID19 and DermaMNIST the finer variants are
+competitive or slightly ahead.
+
+00:16:03.486 --> 00:16:07.710
+And on the ViT models no granularity consistently leads.
+
+00:16:08.160 --> 00:16:17.040
+The paper's conclusion is appropriately hedged: the best
+granularity depends on architecture, dataset and how
+
+00:16:18.390 --> 00:16:28.926
+To summarise: FedVG replaces dataset size with a measure of
+generalisation, computed as the average layerwise gradient
+
+00:16:29.376 --> 00:16:35.760
+Smaller gradients mean flatter minima, which the Fisher
+information connection makes more than an analogy.
+
+00:16:36.210 --> 00:16:42.450
+It is modular by construction, so it improves most existing
+methods rather than competing with them.
+
+00:16:42.900 --> 00:16:49.308
+And the advantage shows up precisely where federated learning
+is hardest — highly heterogeneous clients.
+
+00:16:49.758 --> 00:16:52.806
+Two caveats the paper raises itself.
+
+00:16:53.256 --> 00:17:03.240
+The server needs a public validation set of the right
+modality. The external-dataset experiments show it need not
+
+00:17:03.690 --> 00:17:16.818
+And the authors flag sensitivity to overlap between that
+validation set and particular clients. Shared domains or
+
+00:17:17.268 --> 00:17:25.404
+Computing the gradients also costs a backward pass per client
+per round — though that falls on the server, not on resource-
+

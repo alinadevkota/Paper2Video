@@ -33,7 +33,7 @@ TILE = (640, 400)
 POSTER = {
     "transformer": .15, "diffusion": .15, "lejepa": .25, "dreamer4": .25,
     "good": .55, "vlm_scaling": .35, "lacot": .55, "modality_gap": .25,
-    "intuitive_physics": .45, "fedfound": 162, "ecg_ef": 215, "tessl": 140,
+    "intuitive_physics": .45, "fedfound": 162, "ecg_ef": 215, "tessl": 140, "fedvg": 180,
 }
 # Frames that go on the figure wall.
 WALL = {
