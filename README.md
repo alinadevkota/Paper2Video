@@ -94,7 +94,9 @@ video seeking and the click-to-jump links behave as they do on GitHub Pages. Pla
 ## Publishing
 
 Push to GitHub, then in the repository settings enable Pages from the `main` branch,
-root folder. `.nojekyll` makes Pages serve the files as they are.
+root folder. `.nojekyll` makes Pages serve the files as they are. `robots.txt` and
+`sitemap.xml` are for search engines; the page also carries JSON-LD structured data for the
+site, the FAQ and every video, generated from the same arrays that build the cards.
 
 The videos total about 300 MB. Every file is under GitHub's 100 MB per-file limit, so they
 are committed directly. Do not put them in Git LFS: GitHub Pages does not serve LFS objects.

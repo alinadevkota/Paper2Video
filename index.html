@@ -3,10 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Paper2Video — narrated explainer videos from papers and lectures</title>
-<meta name="description" content="Paper2Video turns machine-learning papers and lecture decks into narrated explainer videos and slide decks from a single editable storyboard. Deterministic matplotlib figures, no generative video.">
+<title>Paper2Video — turn research papers and lectures into narrated explainer videos</title>
+<meta name="description" content="Paper2Video converts a research paper or lecture PDF into a narrated explainer video with animated figures, and into a slide deck, from one editable storyboard. Open source, deterministic matplotlib rendering, no generative video. Watch eleven machine-learning papers as videos.">
+<link rel="canonical" href="https://alinadevkota.github.io/Paper2Video/">
+<meta name="robots" content="index, follow, max-image-preview:large, max-video-preview:-1">
+<meta name="keywords" content="paper to video, research paper to video, convert paper to video, explainer video from PDF, arxiv paper video, paper summary video, lecture to video, storyboard to video, matplotlib animation, academic video generator, open source">
+<meta name="author" content="Alina Devkota">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Paper2Video — narrated explainer videos from papers and lectures">
+<meta property="og:site_name" content="Paper2Video">
+<meta property="og:title" content="Paper2Video — turn research papers into narrated explainer videos">
 <meta property="og:description" content="Papers you can watch: ML papers and lectures turned into narrated explainer videos with animated figures, from a single editable storyboard.">
 <meta property="og:url" content="https://alinadevkota.github.io/Paper2Video/">
 <meta property="og:image" content="https://alinadevkota.github.io/Paper2Video/posters/transformer.jpg">
@@ -193,6 +198,15 @@ header#top .lede{max-width:64ch}
 .more:hover{border-color:var(--brand); color:var(--brand-2)}
 .more::after{content:" ↓"} .more[aria-expanded="true"]::after{content:" ↑"}
 
+/* faq */
+.faq details{border-top:1px solid var(--border-dark); padding:.9em 0}
+.faq details:last-child{border-bottom:1px solid var(--border-dark)}
+.faq summary{font-weight:700; cursor:pointer; list-style:none; display:flex; justify-content:space-between; gap:1em}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+"; color:var(--brand); font-weight:800}
+.faq details[open] summary::after{content:"–"}
+.faq p{margin:.6em 0 0; color:var(--text-light)}
+
 /* stages */
 .stages{margin:1.75em 0 0; padding:0; list-style:none; counter-reset:s; display:grid; gap:1.4em}
 @media (min-width:780px){.stages{grid-template-columns:repeat(4,1fr); gap:1.4em} .stages.five{grid-template-columns:repeat(5,1fr)}}
@@ -215,6 +229,23 @@ footer{background:var(--footer-bg); border-top:1px solid var(--border-dark); mar
 .social svg.stroke{fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
 footer .caption{font-size:.85em}
 </style>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+ {"@type":"WebSite","@id":"https://alinadevkota.github.io/Paper2Video/#site","url":"https://alinadevkota.github.io/Paper2Video/","name":"Paper2Video",
+  "description":"Turn research papers and lecture decks into narrated explainer videos and slide decks from one editable storyboard."},
+ {"@type":"SoftwareApplication","name":"Paper2Video","applicationCategory":"MultimediaApplication","operatingSystem":"Linux, macOS, Windows",
+  "url":"https://alinadevkota.github.io/Paper2Video/","codeRepository":"https://github.com/alinadevkota/Paper2Video","license":"https://creativecommons.org/publicdomain/zero/1.0/",
+  "offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},
+  "description":"Converts a research paper or lecture PDF into a narrated explainer video with animated matplotlib figures, and into a PowerPoint deck, from a single storyboard file.",
+  "author":{"@type":"Person","name":"Alina Devkota","url":"https://alinadevkota.github.io/"}},
+ {"@type":"FAQPage","mainEntity":[
+  {"@type":"Question","name":"How do I turn a research paper into a video?","acceptedAnswer":{"@type":"Answer","text":"Give Paper2Video the PDF. It extracts the text and figures, drafts a storyboard with an LLM, and renders a narrated video in which animated figures are drawn in step with the narration. You edit the storyboard, a plain JSON file, and re-render."}},
+  {"@type":"Question","name":"Is this AI video generation?","acceptedAnswer":{"@type":"Answer","text":"No. An LLM drafts the storyboard, but every frame is a matplotlib drawing computed from values in the storyboard, so every number on screen can be traced to the paper. No generative video model is involved."}},
+  {"@type":"Question","name":"Can I make a video of my own paper?","acceptedAnswer":{"@type":"Answer","text":"Yes. The tool is open source under CC0. Install the Python requirements, ffmpeg and poppler, run the planner on your PDF, review the storyboard, and render. The same storyboard also produces a PowerPoint deck."}},
+  {"@type":"Question","name":"What kinds of papers and lectures work best?","acceptedAnswer":{"@type":"Answer","text":"Anything with a mechanism worth seeing: architectures, training dynamics, geometric arguments, scaling laws, ablations. Lecture decks work well too, since a scene can crop the deck's own diagram from a page."}}
+ ]}
+]}
+</script>
 </head>
 <body>
 <div class="masthead"><div class="wrap">
@@ -224,6 +255,7 @@ footer .caption{font-size:.85em}
   <a href="#demos">Videos</a>
   <a href="#library">Figures</a>
   <a href="#how">How it works?</a>
+  <a href="#faq">FAQ</a>
   <a href="https://github.com/alinadevkota/Paper2Video">Source</a>
   <a class="author" href="https://alinadevkota.github.io/">Alina Devkota</a>
   <button class="toggle" id="theme-toggle" aria-label="Toggle dark theme" title="toggle theme">
@@ -408,6 +440,38 @@ footer .caption{font-size:.85em}
   </ul>
 </section>
 
+<section id="faq">
+  <h2>FAQ</h2>
+  <div class="faq">
+    <details open>
+      <summary>How do I turn a research paper into a video?</summary>
+      <p>Give Paper2Video the PDF. It extracts the text and figures, drafts a storyboard with Claude,
+      and renders a narrated video in which animated figures are drawn in step with the narration.
+      You edit the storyboard, a plain JSON file, and re-render. A ten-minute explainer takes one
+      PDF, one storyboard and a few commands.</p>
+    </details>
+    <details>
+      <summary>Is this AI video generation?</summary>
+      <p>No. An LLM drafts the storyboard, but every frame is a matplotlib drawing computed from
+      values in that storyboard, so every number on screen can be traced to the paper. No generative
+      video model is involved, which is why the results are trustworthy enough to learn from.</p>
+    </details>
+    <details>
+      <summary>Can I make a video of my own paper?</summary>
+      <p>Yes. The tool is open source under CC0. Install the Python requirements, ffmpeg and poppler,
+      run the planner on your PDF, review the storyboard, and render. The same storyboard also
+      produces a PowerPoint deck with the narration in the speaker notes.</p>
+    </details>
+    <details>
+      <summary>What kinds of papers and lectures work best?</summary>
+      <p>Anything with a mechanism worth seeing: architectures, training dynamics, geometric
+      arguments, scaling laws, ablations. The figure library covers a hundred kinds of drawing today
+      and grows with each paper. Lecture decks work well too, since a scene can crop the deck's own
+      diagram straight from a page.</p>
+    </details>
+  </div>
+</section>
+
 </div>
 
 <footer><div class="wrap">
@@ -492,6 +556,22 @@ mine.innerHTML = MINE.length
   ? MINE.map(card).join("")
   : `<p class="empty">Videos for these papers are being rendered and will appear here.</p>`;
 mine.classList.toggle("featured", MINE.length === 1);   // one entry: video beside its description
+
+// Structured data for each video, so search engines can list them as videos.
+const SITE = "https://alinadevkota.github.io/Paper2Video/";
+const iso = d => { const [m, s] = d.split(":").map(Number); return `PT${m}M${s}S`; };
+const videoLd = v => ({
+  "@type": "VideoObject", name: v.title, description: v.blurb.replace(/<[^>]+>/g, ""),
+  thumbnailUrl: SITE + `posters/${v.mine ? "mine/" : ""}${v.id}.jpg`,
+  contentUrl: SITE + `videos/${v.mine ? "mine/" : ""}${v.id}.mp4`,
+  embedUrl: SITE + "#" + v.id, duration: iso(v.dur), uploadDate: "2026-09-13",
+  inLanguage: "en", isFamilyFriendly: true,
+  author: {"@type": "Person", name: "Alina Devkota", url: "https://alinadevkota.github.io/"},
+  publisher: {"@type": "Person", name: "Alina Devkota"}
+});
+const ld = document.createElement("script"); ld.type = "application/ld+json";
+ld.textContent = JSON.stringify({"@context": "https://schema.org", "@graph": [...MINE, ...VIDEOS].map(videoLd)});
+document.head.appendChild(ld);
 
 // Frames on the wall, one per kind of figure: [file stem, seconds into that video]. Made by make_assets.py.
 const WALL = [

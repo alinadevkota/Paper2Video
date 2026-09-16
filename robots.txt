@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://alinadevkota.github.io/Paper2Video/sitemap.xml
